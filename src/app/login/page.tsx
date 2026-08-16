@@ -14,7 +14,7 @@ import {
   Stethoscope,
   User,
 } from "lucide-react";
-import { BRAND, Logo, PrototypeRibbon } from "@/components/brand";
+import { BRAND, Logo } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import { Button, Card, Field, Input, Skeleton } from "@/components/ui";
 import { post } from "@/lib/client";
@@ -117,7 +117,6 @@ function LoginInner() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-ink-50">
-      <PrototypeRibbon />
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 py-8">
         <Logo size="lg" />
         <p className="mt-2 text-center text-sm text-ink-500">{BRAND.tagline}</p>

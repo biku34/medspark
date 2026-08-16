@@ -16,7 +16,7 @@ import {
   ShoppingCart,
   User as UserIcon,
 } from "lucide-react";
-import { Logo, PrototypeRibbon } from "./brand";
+import { Logo } from "./brand";
 import { LocationPermissionGate, LocationSheet } from "./location-sheet";
 import { useApp } from "./providers";
 import { CITIES, areasFor } from "@/lib/zones";
@@ -265,7 +265,6 @@ export function CustomerShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <PrototypeRibbon />
       <CustomerHeader />
       <ServiceAreaBanner />
       <main

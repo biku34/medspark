@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { LogOut, RefreshCcw } from "lucide-react";
-import { Logo, PrototypeRibbon } from "./brand";
+import { Logo } from "./brand";
 import { useApp } from "./providers";
 import { Button } from "./ui";
 import type { Role } from "@/lib/types";
@@ -54,7 +54,6 @@ export function StaffShell({
 
   return (
     <div className="flex min-h-dvh flex-col bg-ink-50">
-      <PrototypeRibbon />
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
           <Logo size="sm" href="/" />

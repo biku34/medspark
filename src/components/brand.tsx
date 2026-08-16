@@ -135,11 +135,3 @@ export function ComplianceNote({
     </div>
   );
 }
-
-export function PrototypeRibbon() {
-  return (
-    <div className="bg-ink-900 px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-ink-300 no-print">
-      PROTOTYPE · Simulated data, payments, OTP and calls · Not for real medical use
-    </div>
-  );
-}
