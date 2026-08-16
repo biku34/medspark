@@ -134,20 +134,31 @@ export default function ProfilePage() {
             </Card>
 
             <Card className="mt-3">
-              <SectionTitle title="Demo utilities" subtitle="Prototype only" />
+              <SectionTitle title="Account" subtitle="Session" />
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  icon={<RefreshCcw size={15} />}
-                  onClick={async () => {
-                    await post("/api/seed", {});
-                    toast({ kind: "success", title: "Demo data reset" });
-                    router.refresh();
-                    location && window.location.reload();
-                  }}
-                >
-                  Reset demo data
-                </Button>
+                {/* Resetting wipes shared live data, so it is admin-only.
+                    The API enforces this too — this just hides a dead button. */}
+                {user?.role === "admin" && (
+                  <Button
+                    variant="outline"
+                    icon={<RefreshCcw size={15} />}
+                    onClick={async () => {
+                      try {
+                        await post("/api/seed", {});
+                        toast({ kind: "success", title: "Demo data reset" });
+                        window.location.reload();
+                      } catch (e) {
+                        toast({
+                          kind: "error",
+                          title: "Could not reset",
+                          body: (e as Error).message,
+                        });
+                      }
+                    }}
+                  >
+                    Reset demo data
+                  </Button>
+                )}
                 <Button
                   variant="danger"
                   icon={<LogOut size={15} />}

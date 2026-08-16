@@ -65,16 +65,49 @@ npm start
 | `OCR_API_KEY` | Placeholder | Prescription text extraction. Pharmacist enters/confirms lines. |
 | `BLOB_STORAGE_URL` / `_TOKEN` | Placeholder | Prescription file storage. Prototype stores data URLs. |
 
-### Deploying to Vercel
+### Going live on MongoDB Atlas + Vercel
 
-1. Push the repo to GitHub and import it in Vercel (framework auto-detected as Next.js).
-2. Add `MONGODB_URI`, `MONGODB_DB` and `SESSION_SECRET` as environment variables.
-3. In Atlas, allow Vercel's egress (`0.0.0.0/0` for a demo, or a fixed egress IP on paid plans).
-4. Deploy, then hit `POST /api/seed` once (or press **Reset demo data** in the customer profile)
-   to populate Atlas with the demo dataset.
+With `MONGODB_URI` set, every role reads and writes the **same live database** — a customer's order
+appears in the pharmacy dashboard, the rider picks it up, the pharmacist verifies prescriptions and
+the admin sees all of it, across devices and sessions.
 
-> Without `MONGODB_URI` the deployment still works, but serverless instances don't share memory —
-> data may reset between requests. **Use Atlas for a live demo.**
+**1. Vercel → Settings → Environment Variables** (Production, Preview and Development):
+
+| Name | Value |
+| --- | --- |
+| `MONGODB_URI` | `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority` |
+| `MONGODB_DB` | `dawaquick` |
+| `SESSION_SECRET` | any long random string |
+| `SEED_TOKEN` | *(optional)* a secret that allows scripted re-seeding |
+
+**2. Atlas → Network Access.** Vercel's serverless functions do not have a fixed IP, so add
+`0.0.0.0/0` (allow from anywhere). The database user's password is what protects the cluster.
+
+**3. Redeploy.** The first request seeds the database automatically. Check it with:
+
+```bash
+curl https://<your-app>.vercel.app/api/seed
+```
+
+which reports `{"driver":"mongo","connected":true,"seeded":true,"counts":{…}}`. If `connected` is
+`false` the response includes the reason — almost always a wrong password or a missing Network
+Access entry.
+
+**Re-seeding is protected.** `POST /api/seed` wipes everything, so it is only open while the
+database is empty (first-run bootstrap). After that it requires an **admin session** or a matching
+`x-seed-token` header — otherwise any visitor could destroy live orders.
+
+> With no `MONGODB_URI` the app still runs on an in-memory store, but serverless instances don't
+> share memory, so roles cannot see each other's data. **Atlas is required for real coordination.**
+
+### Local development against Atlas
+
+```bash
+cp .env.example .env.local
+```
+
+Put the same `MONGODB_URI` in `.env.local` and run `npm run dev`. `.env.local` is gitignored —
+never commit credentials, especially with a public repository.
 
 ---
 
@@ -461,7 +494,7 @@ no affiliation with any real pharmacy or pharmaceutical company is claimed).
 
 | Collection | Count | Notes |
 | --- | --- | --- |
-| `medicines` | 136 | 104 browsable shelf products across 15 categories + 12 prescription, incl. 1 cold-chain and 1 restricted |
+| `medicines` | 117 | 104 browsable shelf products across 15 categories + 13 prescription, incl. 1 cold-chain and 1 restricted |
 | `pharmacies` | 10 | 5 in Gandhinagar + 4 in Ahmedabad (active & verified), 1 pending verification |
 | `users` | 10 | 3 customers, 2 pharmacists, 2 pharmacy desks, 2 riders, 1 admin |
 | `inventory` | ~800 | per-pharmacy stock and price; hand-tuned for the demo scenarios, deterministically generated for the wider shelf |
