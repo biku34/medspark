@@ -5,7 +5,13 @@
  * shapes work against both the in-memory prototype store and MongoDB Atlas.
  */
 
-export type Role = "customer" | "pharmacist" | "pharmacy" | "delivery" | "admin";
+export type Role =
+  | "customer"
+  | "pharmacist"
+  | "pharmacy"
+  | "delivery"
+  | "provider"
+  | "admin";
 
 export type MedicineType = "OTC" | "RX";
 
@@ -293,6 +299,199 @@ export const ORDER_LABELS: Record<OrderStatus, string> = {
   CANCELLED: "Cancelled",
   REJECTED: "Rejected — Out of Stock",
 };
+
+/* ========================================================================== */
+/* Home healthcare — physiotherapy & nursing home visits                      */
+/* ========================================================================== */
+
+export type ServiceType = "PHYSIO" | "NURSING";
+
+export type BookingStatus =
+  | "REQUESTED"
+  | "ASSIGNED"
+  | "CONFIRMED"
+  | "IN_VISIT"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "REJECTED";
+
+export interface ProviderAvailability {
+  /** 0 = Sunday … 6 = Saturday */
+  weekdays: number[];
+  /** "09:00-11:00" style windows the provider works. */
+  slots: string[];
+}
+
+export interface ProviderCredential {
+  id: string;
+  name: string;
+  /** Prototype stores a filename only; production stores an object-storage key. */
+  fileName: string;
+  uploadedAt: string;
+  status: "PENDING" | "VERIFIED" | "REJECTED";
+}
+
+export interface ServiceProvider {
+  id: string;
+  /** Login account for this provider. */
+  userId: string;
+  type: ServiceType;
+  name: string;
+  emoji: string;
+  headline: string;
+  bio: string;
+  qualifications: string[];
+  /** Council registration — verified by admin before the provider goes live. */
+  registrationNo: string;
+  experienceYears: number;
+  languages: string[];
+  specialities: string[];
+  /** Human-readable coverage, e.g. ["Sector 11", "Sector 7"]. */
+  serviceAreas: string[];
+  city: string;
+  lat: number;
+  lng: number;
+  serviceRadiusKm: number;
+  /** Provider's own rate; falls back to the platform rate when unset. */
+  hourlyRate: number;
+  rating: number;
+  ratingCount: number;
+  completedVisits: number;
+  availability: ProviderAvailability;
+  credentials: ProviderCredential[];
+  verified: boolean;
+  status: PharmacyStatus; // ACTIVE | PENDING | SUSPENDED — same lifecycle
+  createdAt: string;
+}
+
+export interface BookingEvent {
+  status: BookingStatus;
+  at: string;
+  note?: string;
+}
+
+export interface ServiceBooking {
+  id: string;
+  code: string; // BK-7QW2M
+  serviceType: ServiceType;
+
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  patientName: string;
+
+  address: string;
+  locality: string;
+  city: string;
+  lat: number;
+  lng: number;
+
+  /** YYYY-MM-DD — always at least `minAdvanceDays` ahead of booking time. */
+  date: string;
+  slot: string;
+  hours: number;
+
+  preferredProviderId?: string;
+  providerId?: string;
+  providerName?: string;
+
+  /** Physiotherapy: reason for the visit. */
+  reason?: string;
+  /** Nursing: the kinds of assistance requested. */
+  assistanceTypes: string[];
+  patientNotes?: string;
+
+  rate: number;
+  serviceCharge: number;
+  platformFee: number;
+  total: number;
+
+  paymentMode: "COD" | "UPI" | "CARD";
+  paymentStatus: "PENDING" | "PAID";
+
+  status: BookingStatus;
+  history: BookingEvent[];
+  rating?: number;
+  createdAt: string;
+}
+
+export interface ServiceRateConfig {
+  rate: number;
+  platformFee: number;
+  minHours: number;
+  maxHours: number;
+}
+
+/** Admin-configurable pricing for both home-visit services. */
+export interface ServiceSettings {
+  id: string;
+  physio: ServiceRateConfig;
+  nursing: ServiceRateConfig;
+  /** Minimum days between booking and visit. Same-day booking is blocked. */
+  minAdvanceDays: number;
+  updatedAt: string;
+}
+
+export const SERVICE_META: Record<
+  ServiceType,
+  { label: string; short: string; emoji: string; providerNoun: string; slug: string }
+> = {
+  PHYSIO: {
+    label: "Physiotherapy at Home",
+    short: "Physiotherapy",
+    emoji: "🧑‍⚕️",
+    providerNoun: "Physiotherapist",
+    slug: "physiotherapy",
+  },
+  NURSING: {
+    label: "Nursing Assistance at Home",
+    short: "Nursing Assistance",
+    emoji: "👩‍⚕️",
+    providerNoun: "Nurse",
+    slug: "nursing",
+  },
+};
+
+/** Nursing adds an explicit "home visit in progress" stage. */
+export const BOOKING_FLOW: Record<ServiceType, BookingStatus[]> = {
+  PHYSIO: ["REQUESTED", "ASSIGNED", "CONFIRMED", "COMPLETED"],
+  NURSING: ["REQUESTED", "ASSIGNED", "CONFIRMED", "IN_VISIT", "COMPLETED"],
+};
+
+export function bookingLabel(type: ServiceType, status: BookingStatus): string {
+  const noun = SERVICE_META[type].providerNoun;
+  const labels: Record<BookingStatus, string> = {
+    REQUESTED: "Booking Requested",
+    ASSIGNED: `${noun} Assigned`,
+    CONFIRMED: "Booking Confirmed",
+    IN_VISIT: "Home Visit",
+    COMPLETED: type === "PHYSIO" ? "Home Visit Completed" : "Service Completed",
+    CANCELLED: "Booking Cancelled",
+    REJECTED: "Request Declined",
+  };
+  return labels[status];
+}
+
+/** Options offered on the nursing booking form. */
+export const NURSING_ASSISTANCE_TYPES = [
+  "Basic nursing assistance",
+  "Post-hospitalisation support",
+  "Elderly care assistance",
+  "Medication assistance",
+  "Wound-care assistance",
+  "Vital-sign monitoring",
+  "Basic patient support",
+];
+
+export const PHYSIO_REASONS = [
+  "Post-operative rehabilitation",
+  "Back or neck pain",
+  "Knee / joint pain",
+  "Stroke rehabilitation",
+  "Sports injury recovery",
+  "Mobility & balance training",
+  "Post-fracture physiotherapy",
+];
 
 export const PRESCRIPTION_LABELS: Record<PrescriptionStatus, string> = {
   PENDING: "Pending Pharmacist Verification",

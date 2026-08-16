@@ -3,7 +3,17 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Bike, Building2, LogIn, Shield, Stethoscope, User } from "lucide-react";
+import {
+  ArrowRight,
+  Bike,
+  Building2,
+  HandHeart,
+  HeartPulse,
+  LogIn,
+  Shield,
+  Stethoscope,
+  User,
+} from "lucide-react";
 import { BRAND, Logo, PrototypeRibbon } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import { Button, Card, Field, Input, Skeleton } from "@/components/ui";
@@ -30,7 +40,7 @@ const DEMO_ACCOUNTS: Array<{
     role: "pharmacist",
     email: "pharmacist@medspark.app",
     label: "Pharmacist",
-    who: "Dr. Neha Sharma",
+    who: "Dr. Neha Shah",
     icon: Stethoscope,
     tone: "bg-amber-50 text-amber-700 border-amber-200",
   },
@@ -49,6 +59,22 @@ const DEMO_ACCOUNTS: Array<{
     who: "Imran Qureshi",
     icon: Bike,
     tone: "bg-sky-50 text-sky-700 border-sky-200",
+  },
+  {
+    role: "provider",
+    email: "physio@medspark.app",
+    label: "Physiotherapist",
+    who: "Dr. Ankit Rawal (PT)",
+    icon: HeartPulse,
+    tone: "bg-teal-50 text-teal-700 border-teal-200",
+  },
+  {
+    role: "provider",
+    email: "nurse@medspark.app",
+    label: "Nurse",
+    who: "Sr. Kavita Patel (RN)",
+    icon: HandHeart,
+    tone: "bg-rose-50 text-rose-700 border-rose-200",
   },
   {
     role: "admin",
@@ -134,9 +160,9 @@ function LoginInner() {
             </div>
 
             <p className="mt-4 rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
-              Each role opens a different interface: customers order, pharmacists verify
-              prescriptions, pharmacies accept and pack orders, riders deliver, and admin runs the
-              network.
+              Each role opens a different interface: customers order and book home visits, pharmacists
+              verify prescriptions, pharmacies pack orders, riders deliver, physiotherapists and
+              nurses manage home visits, and admin runs the network.
             </p>
           </Card>
 

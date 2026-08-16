@@ -12,6 +12,7 @@ import type { Role } from "@/lib/types";
 
 const ROLE_LABEL: Record<Role, string> = {
   customer: "Customer",
+  provider: "Home Care Provider",
   pharmacist: "Pharmacist Console",
   pharmacy: "Pharmacy Dashboard",
   delivery: "Delivery Partner",

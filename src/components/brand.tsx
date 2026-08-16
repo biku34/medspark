@@ -7,6 +7,7 @@ export const BRAND = {
   tagline: "Verified Medicines. Faster Delivery. Safer Care.",
   promise: "Verified medicines from nearby pharmacies, delivered to your doorstep.",
   differentiator: "Don't search pharmacy to pharmacy. Find the medicine near you.",
+  positioning: "Your Local Healthcare, Delivered to Your Doorstep.",
 };
 
 /** Wordmark + spark glyph. Pure SVG so it scales and needs no assets. */

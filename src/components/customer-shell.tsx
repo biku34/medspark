@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   FileText,
+  HeartPulse,
   Home,
   LogIn,
   MapPin,
@@ -94,6 +95,13 @@ export function CustomerHeader() {
                 Orders
               </Link>
               <Link
+                href="/bookings"
+                className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100 sm:flex"
+              >
+                <HeartPulse size={18} />
+                Home Visits
+              </Link>
+              <Link
                 href="/prescriptions"
                 className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100 lg:flex"
               >
@@ -151,7 +159,7 @@ const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/search", label: "Search", icon: Search },
   { href: "/prescriptions/upload", label: "Upload ℞", icon: FileText },
-  { href: "/orders", label: "Orders", icon: Package },
+  { href: "/bookings", label: "Visits", icon: HeartPulse },
   { href: "/profile", label: "Profile", icon: UserIcon },
 ];
 
@@ -245,6 +253,7 @@ export function CustomerShell({
     if (userLoading || !user) return;
     if (user.role === "customer") return;
     const home = {
+      provider: "/provider",
       pharmacist: "/pharmacist",
       pharmacy: "/pharmacy",
       delivery: "/delivery",

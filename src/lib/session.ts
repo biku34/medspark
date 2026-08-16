@@ -90,6 +90,7 @@ export async function sessionWithRole(...roles: Role[]): Promise<Session | null>
 
 export const ROLE_HOME: Record<Role, string> = {
   customer: "/",
+  provider: "/provider",
   pharmacist: "/pharmacist",
   pharmacy: "/pharmacy",
   delivery: "/delivery",

@@ -18,6 +18,12 @@ import type {
 } from "./types";
 import { etaWindow, pharmacyDistanceKm } from "./utils";
 import { mockPrescriptionImage } from "./sample-prescription";
+import {
+  PROVIDERS,
+  PROVIDER_USERS,
+  buildBookings,
+  buildSettings,
+} from "./seed-home-care";
 
 export { mockPrescriptionImage };
 
@@ -1706,8 +1712,10 @@ export function buildSearchLogs(): SearchLog[] {
 /* -------------------------------------------------------------------------- */
 
 export function buildSeed() {
+  const settings = buildSettings();
   return {
-    users: USERS.map((u) => ({ ...u })),
+    // Provider logins live in the same users collection as every other role.
+    users: [...USERS, ...PROVIDER_USERS].map((u) => ({ ...u })),
     medicines: MEDICINES.map((m) => ({ ...m })),
     pharmacies: PHARMACIES.map((p) => ({ ...p })),
     inventory: buildInventory(),
@@ -1716,5 +1724,8 @@ export function buildSeed() {
     notifications: buildNotifications(),
     searchLogs: buildSearchLogs(),
     stockAlerts: [],
+    providers: PROVIDERS.map((p) => ({ ...p })),
+    bookings: buildBookings(settings),
+    settings: [settings],
   };
 }

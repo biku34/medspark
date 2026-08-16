@@ -22,7 +22,10 @@ export type CollectionName =
   | "prescriptions"
   | "notifications"
   | "searchLogs"
-  | "stockAlerts";
+  | "stockAlerts"
+  | "providers"
+  | "bookings"
+  | "settings";
 
 export const COLLECTIONS: CollectionName[] = [
   "users",
@@ -34,6 +37,9 @@ export const COLLECTIONS: CollectionName[] = [
   "notifications",
   "searchLogs",
   "stockAlerts",
+  "providers",
+  "bookings",
+  "settings",
 ];
 
 export type Filter = Record<string, unknown>;
@@ -215,6 +221,9 @@ const mongoStore: Store = {
     await db.collection("orders").createIndex({ customerId: 1, createdAt: -1 });
     await db.collection("orders").createIndex({ pharmacyId: 1, status: 1 });
     await db.collection("prescriptions").createIndex({ status: 1, createdAt: -1 });
+    await db.collection("providers").createIndex({ type: 1, status: 1 });
+    await db.collection("bookings").createIndex({ customerId: 1, date: -1 });
+    await db.collection("bookings").createIndex({ providerId: 1, status: 1 });
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
   },
 };

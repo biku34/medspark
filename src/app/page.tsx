@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Bike,
+  CalendarDays,
+  Check,
   ChevronRight,
   ClipboardList,
   Clock3,
@@ -76,6 +78,40 @@ const QUICK_ACTIONS = [
   },
 ];
 
+/** The two scheduled home-visit services, alongside medicine delivery. */
+const HOME_SERVICES = [
+  {
+    href: "/services/physiotherapy",
+    emoji: "🧑‍⚕️",
+    title: "Physiotherapy",
+    blurb: "Professional physiotherapy at home",
+    ctaLabel: "Book a Visit",
+    fromRate: 500,
+    card: "border-brand-200 bg-brand-50/50",
+    cta: "bg-brand-600 group-hover:bg-brand-700",
+    points: [
+      "Verified physiotherapists with council registration",
+      "Post-op, back & knee pain, stroke and mobility rehab",
+      "Choose your therapist, date and time slot",
+    ],
+  },
+  {
+    href: "/services/nursing",
+    emoji: "👩‍⚕️",
+    title: "Nursing Assistance",
+    blurb: "Qualified nursing support at home",
+    ctaLabel: "Book Nursing Help",
+    fromRate: 300,
+    card: "border-violet-200 bg-violet-50/50",
+    cta: "bg-violet-600 group-hover:bg-violet-700",
+    points: [
+      "Post-hospitalisation and elderly care support",
+      "Vitals monitoring, wound care and patient assistance",
+      "Shifts from a few hours to full-day cover",
+    ],
+  },
+];
+
 const AUDIENCE = [
   "Hostel & PG residents",
   "Senior citizens",
@@ -137,6 +173,9 @@ export default function HomePage() {
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-brand-50 sm:text-base">
           {BRAND.promise}
+        </p>
+        <p className="mt-2 text-sm font-semibold text-brand-100">
+          Medicines · Physiotherapy · Nursing — {BRAND.positioning}
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2.5">
@@ -221,6 +260,57 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Healthcare at Your Doorstep — home visit services                    */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mt-8">
+        <SectionTitle
+          title="Healthcare at Your Doorstep"
+          subtitle="Qualified professionals who come to you — scheduled home visits"
+        />
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {HOME_SERVICES.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className={`group relative overflow-hidden rounded-3xl border p-5 transition-transform hover:-translate-y-0.5 sm:p-6 ${s.card}`}
+            >
+              <span className="text-4xl">{s.emoji}</span>
+              <h3 className="mt-2 text-lg font-bold text-ink-900 sm:text-xl">{s.title}</h3>
+              <p className="mt-1 text-sm text-ink-600">{s.blurb}</p>
+
+              <ul className="mt-3 space-y-1">
+                {s.points.map((p) => (
+                  <li key={p} className="flex items-start gap-1.5 text-xs text-ink-600">
+                    <Check size={13} className="mt-0.5 shrink-0 text-brand-600" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-ink-900">
+                  From {inr(s.fromRate)}
+                  <span className="font-normal text-ink-500">/hour</span>
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${s.cta}`}
+                >
+                  {s.ctaLabel}
+                  <ArrowRight size={15} />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <p className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900">
+          <CalendarDays size={16} className="shrink-0 text-amber-600" />
+          Advance booking required: minimum 1 day. Same-day home visits are not available.
+        </p>
       </section>
 
       {/* ------------------------------------------------------------------ */}
@@ -430,7 +520,16 @@ export default function HomePage() {
       {/* How it works                                                        */}
       {/* ------------------------------------------------------------------ */}
       <section className="mt-8">
-        <SectionTitle title="How MedSpark works" subtitle="Two clearly separated journeys" />
+        <SectionTitle
+          title="How MedSpark works"
+          subtitle="Three services, each with its own clearly separated journey"
+        />
+
+        {/* 💊 Medicine delivery — two sub-journeys */}
+        <p className="mb-2 flex items-center gap-2 text-sm font-bold text-ink-900">
+          <span className="text-lg">💊</span> Medicine Delivery
+          <span className="font-normal text-ink-500">· rapid, on demand</span>
+        </p>
         <div className="grid gap-3 md:grid-cols-2">
           <Card className="border-emerald-200 bg-emerald-50/40">
             <div className="mb-2 flex items-center gap-2">
@@ -474,6 +573,68 @@ export default function HomePage() {
           </Card>
         </div>
         <ComplianceNote className="mt-3" />
+
+        {/* 🧑‍⚕️👩‍⚕️ Scheduled home visits */}
+        <p className="mb-2 mt-6 flex items-center gap-2 text-sm font-bold text-ink-900">
+          <span className="text-lg">🏠</span> Home Visits
+          <span className="font-normal text-ink-500">· scheduled, minimum 1 day ahead</span>
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {[
+            {
+              emoji: "🧑‍⚕️",
+              title: "Physiotherapy at home",
+              tone: "border-brand-200 bg-brand-50/40",
+              text: "text-brand-900",
+              dot: "bg-brand-600",
+              steps: [
+                "Select service",
+                "Choose date & time slot",
+                "Select duration",
+                "Provider assignment",
+                "Confirmed booking → home visit",
+              ],
+            },
+            {
+              emoji: "👩‍⚕️",
+              title: "Nursing help at home",
+              tone: "border-violet-200 bg-violet-50/40",
+              text: "text-violet-900",
+              dot: "bg-violet-600",
+              steps: [
+                "Select assistance type",
+                "Choose date & time slot",
+                "Select duration",
+                "Provider assignment",
+                "Confirmed booking → home visit",
+              ],
+            },
+          ].map((c) => (
+            <Card key={c.title} className={c.tone}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-lg">{c.emoji}</span>
+                <h3 className={`font-semibold ${c.text}`}>{c.title}</h3>
+              </div>
+              <ol className={`space-y-1.5 text-sm ${c.text}/85`}>
+                {c.steps.map((s, i) => (
+                  <li key={s} className="flex gap-2">
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${c.dot}`}
+                    >
+                      {i + 1}
+                    </span>
+                    {s}
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          ))}
+        </div>
+        <p className="mt-3 rounded-xl border border-ink-200 bg-white p-3 text-xs text-ink-500">
+          Home-visit providers are credential-verified by MedSpark before they can accept bookings.
+          Nursing assistance supports recovery and daily care — it is not a substitute for emergency
+          medical care or a doctor&apos;s consultation.
+        </p>
       </section>
 
       {/* ------------------------------------------------------------------ */}

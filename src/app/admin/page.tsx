@@ -5,8 +5,10 @@ import {
   Activity,
   Bike,
   Building2,
+  CalendarDays,
   CheckCircle2,
   Clock3,
+  HeartPulse,
   FileText,
   IndianRupee,
   Package,
@@ -36,11 +38,29 @@ import {
 } from "@/components/ui";
 import { api, patch, post } from "@/lib/client";
 import type { AdminStats } from "@/lib/services";
-import { ORDER_LABELS, type Order, type Pharmacy, type User } from "@/lib/types";
+import {
+  ORDER_LABELS,
+  SERVICE_META,
+  bookingLabel,
+  type Order,
+  type Pharmacy,
+  type ServiceBooking,
+  type ServiceProvider,
+  type ServiceSettings,
+  type User,
+} from "@/lib/types";
+import type { BookingAnalytics } from "@/lib/home-care";
+import { bookingDateLabel } from "@/lib/booking-utils";
 import { CITIES, areasFor, type City } from "@/lib/zones";
 import { dateTime, inr } from "@/lib/utils";
 
-type Tab = "overview" | "pharmacies" | "pharmacists" | "orders" | "analytics";
+type Tab =
+  | "overview"
+  | "pharmacies"
+  | "pharmacists"
+  | "orders"
+  | "homecare"
+  | "analytics";
 type OrderFilter = "all" | "OTC" | "RX" | "CANCELLED";
 
 export default function AdminDashboard() {
@@ -50,10 +70,30 @@ export default function AdminDashboard() {
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [staff, setStaff] = useState<User[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [providers, setProviders] = useState<ServiceProvider[]>([]);
+  const [bookings, setBookings] = useState<ServiceBooking[]>([]);
+  const [bookingStats, setBookingStats] = useState<BookingAnalytics | null>(null);
+  const [settings, setSettings] = useState<ServiceSettings | null>(null);
+  const [homeTab, setHomeTab] = useState<"PHYSIO" | "NURSING" | "bookings" | "pricing">("PHYSIO");
   const [loading, setLoading] = useState(true);
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [addPharmacyOpen, setAddPharmacyOpen] = useState(false);
   const [addStaffOpen, setAddStaffOpen] = useState(false);
+  const [addProviderOpen, setAddProviderOpen] = useState(false);
+  const [providerForm, setProviderForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    type: "PHYSIO" as "PHYSIO" | "NURSING",
+    registrationNo: "",
+    headline: "",
+    qualifications: "",
+    experienceYears: 5,
+    hourlyRate: 500,
+    serviceRadiusKm: 10,
+    city: "Gandhinagar",
+    serviceArea: "",
+  });
 
   const [pharmacyForm, setPharmacyForm] = useState({
     name: "",
@@ -77,16 +117,23 @@ export default function AdminDashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [s, p, u, o] = await Promise.all([
+      const [s, p, u, o, pr, bk, st] = await Promise.all([
         api<AdminStats>("/api/admin/stats"),
         api<{ pharmacies: Pharmacy[] }>("/api/pharmacies?all=1"),
         api<{ users: User[] }>("/api/users"),
         api<{ orders: Order[] }>("/api/orders"),
+        api<{ providers: ServiceProvider[] }>("/api/providers?all=1"),
+        api<{ bookings: ServiceBooking[] }>("/api/bookings"),
+        api<{ settings: ServiceSettings }>("/api/settings"),
       ]);
       setStats(s);
       setPharmacies(p.pharmacies);
       setStaff(u.users);
       setOrders(o.orders);
+      setProviders(pr.providers);
+      setBookings(bk.bookings);
+      setSettings(st.settings);
+      setBookingStats(await api<BookingAnalytics>("/api/admin/booking-stats"));
     } catch {
       /* guarded by shell */
     } finally {
@@ -98,6 +145,20 @@ export default function AdminDashboard() {
     if (!user) return;
     void load();
   }, [user, load]);
+
+  const providerAction = async (
+    id: string,
+    action: string,
+    extra: Record<string, unknown> = {},
+  ) => {
+    try {
+      await patch(`/api/providers/${id}`, { action, ...extra });
+      toast({ kind: "success", title: `Provider ${action.replace("_", " ")}d` });
+      await load();
+    } catch (e) {
+      toast({ kind: "error", title: "Could not update", body: (e as Error).message });
+    }
+  };
 
   const pharmacyAction = async (id: string, action: string) => {
     await patch(`/api/pharmacies/${id}`, { action });
@@ -132,6 +193,7 @@ export default function AdminDashboard() {
           { id: "pharmacies", label: "Pharmacy Management", count: pharmacies.length },
           { id: "pharmacists", label: "Pharmacist Management", count: t.pharmacists },
           { id: "orders", label: "Orders", count: orders.length },
+          { id: "homecare", label: "Home Healthcare", count: providers.length },
           { id: "analytics", label: "Analytics" },
         ]}
         active={tab}
@@ -377,6 +439,398 @@ export default function AdminDashboard() {
               <EmptyState title="No orders in this view" />
             )}
           </div>
+        </div>
+      )}
+
+      {/* --------------------------- home healthcare ------------------------ */}
+      {tab === "homecare" && (
+        <div className="mt-4 space-y-4">
+          {/* Booking analytics */}
+          {bookingStats && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Stat
+                  label="Physiotherapy bookings"
+                  value={bookingStats.physioBookings}
+                  tone="brand"
+                  icon={<HeartPulse size={15} />}
+                />
+                <Stat
+                  label="Nursing bookings"
+                  value={bookingStats.nursingBookings}
+                  tone="purple"
+                  icon={<Stethoscope size={15} />}
+                />
+                <Stat
+                  label="Upcoming bookings"
+                  value={bookingStats.upcoming}
+                  tone="amber"
+                  icon={<CalendarDays size={15} />}
+                />
+                <Stat
+                  label="Completed visits"
+                  value={bookingStats.completed}
+                  tone="green"
+                  icon={<CheckCircle2 size={15} />}
+                />
+                <Stat
+                  label="Cancelled bookings"
+                  value={bookingStats.cancelled}
+                  tone={bookingStats.cancelled > 0 ? "red" : "slate"}
+                  icon={<XCircle size={15} />}
+                />
+                <Stat
+                  label="Revenue generated"
+                  value={inr(bookingStats.revenue)}
+                  tone="green"
+                  icon={<IndianRupee size={15} />}
+                />
+                <Stat
+                  label="Average booking value"
+                  value={inr(bookingStats.averageValue)}
+                  tone="blue"
+                />
+                <Stat
+                  label="Active providers"
+                  value={providers.filter((p) => p.status === "ACTIVE" && p.verified).length}
+                  hint={`${providers.length} onboarded`}
+                  tone="brand"
+                  icon={<Users size={15} />}
+                />
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                <Card>
+                  <SectionTitle title="Bookings per day" subtitle="Physiotherapy vs nursing" />
+                  <GroupedBars
+                    data={bookingStats.perDay.map((d) => ({
+                      day: d.day,
+                      otc: d.physio,
+                      rx: d.nursing,
+                    }))}
+                  />
+                  <p className="mt-1 text-xs text-ink-400">
+                    Teal = physiotherapy · orange = nursing
+                  </p>
+                </Card>
+                <Card>
+                  <SectionTitle title="Most active providers" subtitle="Completed visits" />
+                  {bookingStats.topProviders.length ? (
+                    <RankedBars items={bookingStats.topProviders} unit="visits" />
+                  ) : (
+                    <p className="text-sm text-ink-500">No completed visits yet.</p>
+                  )}
+                </Card>
+              </div>
+            </>
+          )}
+
+          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+            {(
+              [
+                ["PHYSIO", `Physiotherapists (${providers.filter((p) => p.type === "PHYSIO").length})`],
+                ["NURSING", `Nursing staff (${providers.filter((p) => p.type === "NURSING").length})`],
+                ["bookings", `All bookings (${bookings.length})`],
+                ["pricing", "Pricing & rules"],
+              ] as Array<[typeof homeTab, string]>
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setHomeTab(id)}
+                className={
+                  "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium " +
+                  (homeTab === id
+                    ? "bg-ink-900 text-white"
+                    : "border border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ---------------------------- providers --------------------------- */}
+          {(homeTab === "PHYSIO" || homeTab === "NURSING") && (
+            <>
+              <div className="flex justify-end">
+                <Button icon={<Plus size={16} />} onClick={() => setAddProviderOpen(true)}>
+                  Add provider
+                </Button>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-2">
+                {providers
+                  .filter((p) => p.type === homeTab)
+                  .map((p) => (
+                    <Card key={p.id}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-2xl">
+                            {p.emoji}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-semibold text-ink-900">{p.name}</h3>
+                            <p className="truncate text-xs text-ink-500">{p.headline}</p>
+                            <p className="text-xs text-ink-400">
+                              Reg. {p.registrationNo} · {p.experienceYears} yrs · {inr(p.hourlyRate)}/hr
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge
+                            tone={
+                              p.status === "ACTIVE" ? "green" : p.status === "PENDING" ? "amber" : "red"
+                            }
+                          >
+                            {p.status}
+                          </Badge>
+                          {p.verified ? (
+                            <Badge tone="blue" icon={<ShieldCheck size={11} />}>
+                              Verified ✓
+                            </Badge>
+                          ) : (
+                            <Badge tone="slate">Unverified</Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-ink-500">
+                        <Stars value={p.rating} count={p.ratingCount} />
+                        <span>{p.completedVisits} visits</span>
+                        <span>
+                          {p.serviceAreas.join(", ")} · {p.city} · {p.serviceRadiusKm} km radius
+                        </span>
+                      </div>
+
+                      {/* credentials */}
+                      <div className="mt-3 rounded-xl bg-ink-50 p-3">
+                        <p className="mb-1.5 text-xs font-semibold text-ink-700">Credentials</p>
+                        {p.credentials.length === 0 ? (
+                          <p className="text-xs text-ink-500">None uploaded yet.</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {p.credentials.map((c) => (
+                              <li
+                                key={c.id}
+                                className="flex items-center justify-between gap-2 text-xs"
+                              >
+                                <span className="min-w-0 truncate text-ink-600">
+                                  {c.name} · {c.fileName}
+                                </span>
+                                {c.status === "VERIFIED" ? (
+                                  <Badge tone="green">Verified</Badge>
+                                ) : (
+                                  <button
+                                    onClick={() => providerAction(p.id, "verify_credential", { credentialId: c.id })}
+                                    className="shrink-0 rounded-lg bg-ink-900 px-2 py-1 font-semibold text-white"
+                                  >
+                                    Verify
+                                  </button>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-100 pt-3">
+                        {!p.verified && (
+                          <Button
+                            size="sm"
+                            variant="success"
+                            onClick={() => providerAction(p.id, "approve")}
+                          >
+                            Verify &amp; approve
+                          </Button>
+                        )}
+                        {p.status === "ACTIVE" ? (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => providerAction(p.id, "suspend")}
+                          >
+                            Suspend
+                          </Button>
+                        ) : p.status === "SUSPENDED" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => providerAction(p.id, "reactivate")}
+                          >
+                            Reactivate
+                          </Button>
+                        ) : null}
+                        <Badge tone="slate">
+                          {bookings.filter((b) => b.providerId === p.id).length} bookings
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            </>
+          )}
+
+          {/* ---------------------------- bookings ---------------------------- */}
+          {homeTab === "bookings" && (
+            <div className="overflow-x-auto rounded-2xl border border-ink-200 bg-white">
+              <table className="w-full min-w-3xl text-sm">
+                <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
+                  <tr>
+                    <th className="px-3 py-2.5">Booking</th>
+                    <th className="px-3 py-2.5">Service</th>
+                    <th className="px-3 py-2.5">Customer</th>
+                    <th className="px-3 py-2.5">Provider</th>
+                    <th className="px-3 py-2.5">When</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100">
+                  {bookings.map((b) => (
+                    <tr key={b.id}>
+                      <td className="px-3 py-2.5">
+                        <p className="font-mono text-xs font-semibold text-ink-900">{b.code}</p>
+                        <p className="text-[11px] text-ink-400">{dateTime(b.createdAt)}</p>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge tone={b.serviceType === "PHYSIO" ? "brand" : "purple"}>
+                          {SERVICE_META[b.serviceType].short}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {b.customerName}
+                        <span className="block text-[11px] text-ink-400">{b.locality}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">{b.providerName ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {bookingDateLabel(b.date)}
+                        <span className="block text-[11px] text-ink-400">
+                          {b.slot} · {b.hours}h
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {bookingLabel(b.serviceType, b.status)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-xs font-semibold">
+                        {inr(b.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {bookings.length === 0 && <EmptyState title="No bookings yet" />}
+            </div>
+          )}
+
+          {/* ----------------------------- pricing ---------------------------- */}
+          {homeTab === "pricing" && settings && (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {(["physio", "nursing"] as const).map((key) => {
+                const cfg = settings[key];
+                const label = key === "physio" ? "Physiotherapy" : "Nursing Assistance";
+                return (
+                  <Card key={key}>
+                    <SectionTitle title={`${label} pricing`} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Rate ₹/hour">
+                        <Input
+                          type="number"
+                          value={cfg.rate}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              [key]: { ...cfg, rate: Number(e.target.value) },
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field label="Platform fee ₹">
+                        <Input
+                          type="number"
+                          value={cfg.platformFee}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              [key]: { ...cfg, platformFee: Number(e.target.value) },
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field label="Min hours">
+                        <Input
+                          type="number"
+                          value={cfg.minHours}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              [key]: { ...cfg, minHours: Number(e.target.value) },
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field label="Max hours">
+                        <Input
+                          type="number"
+                          value={cfg.maxHours}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              [key]: { ...cfg, maxHours: Number(e.target.value) },
+                            })
+                          }
+                        />
+                      </Field>
+                    </div>
+                    <p className="mt-2 text-xs text-ink-500">
+                      A {cfg.minHours}-hour visit costs {inr(cfg.rate * cfg.minHours)} +{" "}
+                      {inr(cfg.platformFee)} platform fee ={" "}
+                      <strong>{inr(cfg.rate * cfg.minHours + cfg.platformFee)}</strong>
+                    </p>
+                  </Card>
+                );
+              })}
+
+              <Card className="lg:col-span-2">
+                <SectionTitle title="Booking rules" />
+                <Field
+                  label="Minimum advance notice (days)"
+                  hint="Cannot be set below 1 — same-day home visits are never offered."
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    value={settings.minAdvanceDays}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        minAdvanceDays: Math.max(1, Number(e.target.value)),
+                      })
+                    }
+                  />
+                </Field>
+                <Button
+                  className="mt-3"
+                  onClick={async () => {
+                    try {
+                      const d = await patch<{ settings: ServiceSettings }>("/api/settings", {
+                        physio: settings.physio,
+                        nursing: settings.nursing,
+                        minAdvanceDays: settings.minAdvanceDays,
+                      });
+                      setSettings(d.settings);
+                      toast({ kind: "success", title: "Pricing updated" });
+                    } catch (e) {
+                      toast({ kind: "error", title: "Could not save", body: (e as Error).message });
+                    }
+                  }}
+                >
+                  Save pricing &amp; rules
+                </Button>
+                <p className="mt-2 text-xs text-ink-500">
+                  Changes apply immediately to new bookings on the customer app.
+                </p>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -627,6 +1081,173 @@ export default function AdminDashboard() {
           <p className="rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
             Pharmacists must hold a valid registration. In production this screen would collect
             and verify registration documents before granting verification rights.
+          </p>
+        </div>
+      </Modal>
+
+      {/* --------------------------- add provider --------------------------- */}
+      <Modal
+        open={addProviderOpen}
+        onClose={() => setAddProviderOpen(false)}
+        title="Onboard a home-healthcare provider"
+        footer={
+          <Button
+            full
+            disabled={!providerForm.name || !providerForm.email || !providerForm.registrationNo}
+            onClick={async () => {
+              try {
+                await post("/api/providers", {
+                  ...providerForm,
+                  qualifications: providerForm.qualifications
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                  serviceAreas: providerForm.serviceArea ? [providerForm.serviceArea] : [],
+                  password: "demo1234",
+                });
+                toast({
+                  kind: "success",
+                  title: "Provider added",
+                  body: "Starts PENDING until credentials are verified. Password: demo1234",
+                });
+                setAddProviderOpen(false);
+                await load();
+              } catch (e) {
+                toast({ kind: "error", title: "Could not add", body: (e as Error).message });
+              }
+            }}
+          >
+            Add provider
+          </Button>
+        }
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Service" required>
+              <Select
+                value={providerForm.type}
+                onChange={(e) =>
+                  setProviderForm({
+                    ...providerForm,
+                    type: e.target.value as "PHYSIO" | "NURSING",
+                    hourlyRate: e.target.value === "PHYSIO" ? 500 : 300,
+                  })
+                }
+              >
+                <option value="PHYSIO">Physiotherapist</option>
+                <option value="NURSING">Nurse</option>
+              </Select>
+            </Field>
+            <Field label="Council registration no." required>
+              <Input
+                value={providerForm.registrationNo}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, registrationNo: e.target.value })
+                }
+                placeholder="GSCPT-… / GNC-RN-…"
+              />
+            </Field>
+          </div>
+          <Field label="Full name" required>
+            <Input
+              value={providerForm.name}
+              onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Login email" required>
+              <Input
+                type="email"
+                value={providerForm.email}
+                onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value })}
+              />
+            </Field>
+            <Field label="Phone">
+              <Input
+                value={providerForm.phone}
+                onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Headline">
+            <Input
+              value={providerForm.headline}
+              onChange={(e) => setProviderForm({ ...providerForm, headline: e.target.value })}
+              placeholder="e.g. Post-operative & musculoskeletal rehabilitation"
+            />
+          </Field>
+          <Field label="Qualifications" hint="Comma separated">
+            <Input
+              value={providerForm.qualifications}
+              onChange={(e) =>
+                setProviderForm({ ...providerForm, qualifications: e.target.value })
+              }
+              placeholder="BPT, MPT (Orthopaedics)"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="City">
+              <Select
+                value={providerForm.city}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, city: e.target.value, serviceArea: "" })
+                }
+              >
+                {CITIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Base locality">
+              <Select
+                value={providerForm.serviceArea}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, serviceArea: e.target.value })
+                }
+              >
+                <option value="">— select —</option>
+                {areasFor(providerForm.city as City).map((a) => (
+                  <option key={a.id} value={a.name}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Experience (yrs)">
+              <Input
+                type="number"
+                value={providerForm.experienceYears}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, experienceYears: Number(e.target.value) })
+                }
+              />
+            </Field>
+            <Field label="Rate ₹/hr">
+              <Input
+                type="number"
+                value={providerForm.hourlyRate}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, hourlyRate: Number(e.target.value) })
+                }
+              />
+            </Field>
+            <Field label="Radius (km)">
+              <Input
+                type="number"
+                value={providerForm.serviceRadiusKm}
+                onChange={(e) =>
+                  setProviderForm({ ...providerForm, serviceRadiusKm: Number(e.target.value) })
+                }
+              />
+            </Field>
+          </div>
+          <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+            The provider is created as <strong>PENDING</strong> and cannot accept bookings until
+            they upload credentials and an admin verifies them.
           </p>
         </div>
       </Modal>

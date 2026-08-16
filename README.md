@@ -4,7 +4,14 @@
 
 > _"Don't search pharmacy to pharmacy. Find the medicine near you."_
 
-MedSpark is a **functional prototype** of a hyperlocal medicine-delivery platform. It is not an
+MedSpark is a **functional prototype** of a hyperlocal healthcare platform with three services:
+**medicine delivery**, **physiotherapy at home** and **nursing assistance at home** —
+_"Your Local Healthcare, Delivered to Your Doorstep."_
+
+Medicine delivery is rapid and on demand. The two home-visit services are scheduled, with a
+**minimum one-day advance booking** enforced in the API, not just the UI.
+
+The medicine service is not an
 e‑commerce store with a central warehouse — it is a **digital network of local pharmacies**. A
 customer searches for a medicine, MedSpark shows which *nearby, verified* pharmacies actually have
 it in stock, and **the customer chooses the pharmacy**. Prescription medicines follow a completely
@@ -83,6 +90,11 @@ The login screen also offers one-tap sign-in for each role.
 | Pharmacy (2nd) | `careplus@medspark.app` | CarePlus Chemists desk · Navrangpura, Ahmedabad | `/pharmacy` |
 | Delivery | `rider@medspark.app` | Imran Qureshi | `/delivery` |
 | Delivery (2nd) | `sneha@medspark.app` | Sneha Chauhan | `/delivery` |
+| Physiotherapist | `physio@medspark.app` | Dr. Ankit Rawal (PT) · Gandhinagar | `/provider` |
+| Nurse | `nurse@medspark.app` | Sr. Kavita Patel (RN) · Gandhinagar | `/provider` |
+| Physio (2nd) | `riya@medspark.app` | Dr. Riya Bhavsar (PT) · Ahmedabad | `/provider` |
+| Nurse (2nd) | `alpa@medspark.app` | Sr. Alpa Chauhan (RN) · Ahmedabad | `/provider` |
+| Nurse (unverified) | `firoz@medspark.app` | Sr. Firoz Shaikh (RN) · pending approval | `/provider` |
 | Admin | `admin@medspark.app` | MedSpark Ops | `/admin` |
 
 The API also accepts the simulated OTP `123456` in place of a password for any known email.
@@ -129,7 +141,80 @@ The API also accepts the simulated OTP `123456` in place of a password for any k
 
 ---
 
-## 4. Workflows
+## 4. Home healthcare — physiotherapy & nursing
+
+Two scheduled home-visit services sit alongside medicine delivery. Both are **hourly priced**,
+both require **at least one day's advance notice**, and both are staffed by providers MedSpark
+credential-verifies before they can accept a single booking.
+
+| | Physiotherapy | Nursing Assistance |
+| --- | --- | --- |
+| Demo rate | ₹500/hour (+₹49 platform fee) | ₹300/hour (+₹39 platform fee) |
+| Duration | 1–4 hours | 2–12 hours |
+| Stages | Requested → **Physiotherapist Assigned** → Confirmed → Home Visit Completed | Requested → **Nurse Assigned** → Booking Confirmed → Home Visit → Service Completed |
+| Booking ID | `BK-26SPX` | `BK-3KD8P` |
+
+Rates, platform fees, min/max duration and the advance-notice window are all editable from
+**Admin → Home Healthcare → Pricing & rules**, and the customer app reads them live.
+
+### The advance-booking rule
+
+Same-day booking is impossible, and not merely hidden in the UI:
+
+* `earliestBookableDate()` in [`src/lib/booking-utils.ts`](src/lib/booking-utils.ts) is the single
+  source of truth — the date picker only ever offers dates from tomorrow onward.
+* `POST /api/bookings` re-checks it and rejects anything earlier:
+  *"Home visits need at least 1 day's advance notice. The earliest available date is 2026-08-17."*
+* Admin cannot switch it off — `minAdvanceDays` is floored at 1 by the settings API.
+
+### Booking flow
+
+```
+Select service → choose date (tomorrow onward) → time slot → duration
+→ choose a provider (or "any available") → patient details & address
+→ price breakdown → Confirm Booking → booking ID → live status tracking
+```
+
+Slots come from each provider's real availability (working weekdays + time windows) minus
+bookings already held. A pending request **soft-holds** the slot, so the same provider cannot be
+double-booked while they are still deciding.
+
+### Provider matching
+
+Providers carry real coordinates and a service radius, so the same geography rules as the pharmacy
+network apply: a Gandhinagar patient never sees an Ahmedabad physiotherapist. Requesting one
+directly is refused by the API.
+
+### Safety framing
+
+Nursing assistance is presented throughout as **support, not emergency care**. The booking screen
+and every booking record carry: *"Home nursing assistance is not a substitute for emergency medical
+care."* Medication and wound-care assistance are described as provided only where professionally
+and legally appropriate, following the treating doctor's instructions.
+
+### C. Home-visit flow — ~3 minutes
+
+1. On the home page, scroll to **Healthcare at Your Doorstep** → **Book a Visit** (physiotherapy)
+   or **Book Nursing Help**.
+2. The date strip starts at **tomorrow** — today is never offered. The banner states
+   *"Advance booking required: minimum 1 day."*
+3. Pick a date → real slots appear from provider availability → set duration with `− 2 +`.
+4. Scroll the provider list: qualifications, council registration, experience, rating, distance,
+   languages, service areas and free slots. Pick one, or leave **Any available**.
+5. Fill patient name, address and reason (physio) or assistance types (nursing) → the price panel
+   updates live: **₹500 × 2 = ₹1,000 + ₹49 platform fee = ₹1,049**.
+6. **Confirm Physiotherapy Booking** → booking ID like `BK-26SPX`, status **Booking Requested**.
+7. Sign in as **Physiotherapist** (`physio@medspark.app`) → the request is in the queue →
+   **Accept Request** → **Confirm Booking** → **Mark Visit Completed**.
+   *Nursing adds a **Start Home Visit** stage; try completing without it and the API refuses.*
+8. Back as the customer, the booking page reaches **Home Visit Completed** → **Rate this visit**.
+9. Sign in as **Admin** → **Home Healthcare**: booking analytics, provider verification
+   (approve/suspend), all bookings, and **Pricing & rules** — change the physiotherapy rate and the
+   customer booking screen picks it up immediately.
+
+---
+
+## 5. Workflows
 
 ### Customer
 ```
@@ -167,16 +252,26 @@ New Pickups → Accept Delivery → (pharmacy marks Ready) → Picked Up / Out f
 Each card carries the simulated route map, pickup, drop, distance, promised window and cash to
 collect.
 
+### Home-visit provider (physiotherapist / nurse)
+```
+Booking requests → Accept / Decline → Confirm → (nursing: Start Home Visit) → Mark Completed
+Profile & availability → qualifications, specialities, service areas, radius, rate, working days/slots
+Credentials → upload documents → admin verifies → "Verification Status: Verified ✓"
+Earnings → per visit, per week, per patient
+```
+A provider cannot accept anything until an admin verifies their credentials.
+
 ### Admin
 ```
 Overview KPIs · Pharmacy management (add / verify / suspend / reactivate)
 · Pharmacist management (add / activate / deactivate) · All orders · Analytics
+· Home Healthcare (providers, credentials, bookings, pricing & booking analytics)
 ```
 Admins can onboard and suspend pharmacies but **cannot** approve prescriptions.
 
 ---
 
-## 5. Project structure
+## 6. Project structure
 
 ```
 medspark/
@@ -200,6 +295,10 @@ medspark/
     │   ├── prescriptions/        # CUSTOMER — prescription list
     │   ├── prescriptions/upload/ # CUSTOMER — upload (file / PDF / camera)
     │   ├── prescriptions/[id]/   # CUSTOMER — status, approval, call record
+    │   ├── services/[type]/      # CUSTOMER — physiotherapy / nursing booking flow
+    │   ├── bookings/             # CUSTOMER — home-visit bookings
+    │   ├── bookings/[id]/        # CUSTOMER — booking status + rating
+    │   ├── provider/             # PROVIDER — physiotherapist / nurse dashboard
     │   ├── profile/              # CUSTOMER — profile, orders, ℞, notifications
     │   ├── login/                # all roles — one-tap demo sign-in
     │   ├── pharmacist/           # PHARMACIST — verification queue
@@ -223,6 +322,9 @@ medspark/
     │   └── toast-host.tsx
     └── lib/
         ├── types.ts              # domain model
+        ├── home-care.ts          # provider matching, slots, booking analytics (server)
+        ├── booking-utils.ts      # pure date + pricing helpers (shared browser/server)
+        ├── seed-home-care.ts     # providers, bookings and pricing seed
         ├── db.ts                 # Store interface + mongo / memory drivers
         ├── seed.ts               # all mock data
         ├── sample-prescription.ts# synthetic prescription generator
@@ -253,11 +355,18 @@ medspark/
 | `POST/GET /api/stock-alerts` | customer | “notify me when available” |
 | `GET /api/admin/stats` | admin | KPIs + analytics series |
 | `GET/POST/PATCH /api/users` | admin | staff management |
+| `GET /api/providers?type=&lat=&lng=&date=` | public | matched providers + free slots |
+| `GET /api/providers?all=1` · `POST` | admin | list / onboard a provider |
+| `PATCH /api/providers/[id]` | provider / admin | profile · availability · add_credential · verify · approve · suspend |
+| `GET/POST /api/bookings` | role-scoped | home-visit bookings (**advance-booking rule**) |
+| `PATCH /api/bookings/[id]` | role-checked | accept · reject · confirm · start_visit · complete · cancel · rate · assign |
+| `GET /api/settings` · `PATCH` | public / admin | home-visit pricing and booking rules |
+| `GET /api/admin/booking-stats` | admin | home-healthcare booking analytics |
 | `GET/POST /api/seed` | any | driver info / reset demo data |
 
 ---
 
-## 6. Service geography — Gandhinagar & Ahmedabad
+## 7. Service geography — Gandhinagar & Ahmedabad
 
 MedSpark is hyperlocal, so the geography is **real**, not decorative. Every pharmacy carries actual
 coordinates and distance is a true great-circle calculation (scaled by 1.25× for road distance).
@@ -291,7 +400,7 @@ Coordinates are approximate to sector/locality level and are defined in
 [`src/lib/zones.ts`](src/lib/zones.ts). Production replaces this file with real geocoding and a
 distance-matrix API.
 
-## 7. Mock data
+## 8. Mock data
 
 Seeded from `src/lib/seed.ts` (all brands, manufacturers, pharmacies and people are **fictional**;
 no affiliation with any real pharmacy or pharmaceutical company is claimed).
@@ -305,6 +414,9 @@ no affiliation with any real pharmacy or pharmaceutical company is claimed).
 | `orders` | 20 | 1 live (out for delivery), 1 awaiting pharmacy acceptance, 17 history, 1 cancelled |
 | `prescriptions` | 3 | 2 pending verification, 1 approved with a logged call |
 | `notifications` | 3 | order, prescription and delivery updates |
+| `providers` | 6 | 3 physiotherapists + 3 nurses; 5 verified, 1 pending approval |
+| `bookings` | 9 | 1 confirmed, 1 open request, 1 assigned, 5 completed, 1 cancelled |
+| `settings` | 1 | home-visit rates, platform fees and the advance-booking rule |
 | `searchLogs` | ~169 | weighted terms feeding “most searched medicines” |
 
 Deliberate scenarios baked into the data:
@@ -323,7 +435,7 @@ Deliberate scenarios baked into the data:
 
 ---
 
-## 8. Safety & compliance design
+## 9. Safety & compliance design
 
 * Prescription medicines can **never** be bought directly. `POST /api/orders` rejects any Rx line
   without an `APPROVED` prescription that belongs to the signed-in customer, and rejects any Rx
@@ -331,6 +443,9 @@ Deliberate scenarios baked into the data:
 * Approval requires a **pharmacist** (role-checked), a **logged verification call** with outcome
   `VERIFIED`, a **fully ticked checklist**, and a **written note**. Admins cannot approve.
 * Restricted/scheduled drugs are blocked outright with an explanatory notice.
+* Home-visit providers cannot accept a booking until an admin has verified their credentials —
+  the API refuses with *"Your profile must be verified before accepting bookings"*.
+* Nursing is never presented as emergency care, and same-day home visits are impossible.
 * The hyperlocal radius is enforced **server-side too**: `POST /api/orders` rejects any pharmacy
   further than 10 km from the delivery address, so a cross-city order cannot be forced through the
   API even though the UI would never offer it.
@@ -342,7 +457,7 @@ Deliberate scenarios baked into the data:
 
 ---
 
-## 9. What needs real APIs for production
+## 10. What needs real APIs for production
 
 | Area | Prototype | Production |
 | --- | --- | --- |
@@ -357,11 +472,14 @@ Deliberate scenarios baked into the data:
 | **Notifications** | In-app list | Push (FCM/APNs), SMS, email |
 | **Realtime** | Polling every 6–10 s | WebSockets / SSE / Pusher |
 | **Compliance** | UI gates + API rules | Drug-licence verification, pharmacist registration checks, audit logs, e-prescription standards, schedule-drug handling, data-protection obligations |
+| **Provider credentials** | Filename recorded, admin ticks "verified" | Encrypted document storage, council-registry lookup, background checks, expiry tracking |
+| **Booking reminders** | Notification on each status change | Scheduled job for "visit tomorrow" reminders via push/SMS |
+| **Provider payouts** | Earnings tally only | Settlement runs, TDS, invoicing |
 | **Ops** | — | Observability, rate limits, RBAC hardening, backups, penetration testing |
 
 ---
 
-## 10. Scripts
+## 11. Scripts
 
 ```bash
 npm run dev
@@ -378,7 +496,7 @@ npm run typecheck
 
 ---
 
-## 11. Disclaimer
+## 12. Disclaimer
 
 This is a demonstration prototype built for product evaluation. It is **not** a licensed pharmacy
 service, dispenses nothing, and must not be used for real medical decisions. All patient,
