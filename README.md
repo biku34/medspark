@@ -100,6 +100,21 @@ database is empty (first-run bootstrap). After that it requires an **admin sessi
 > With no `MONGODB_URI` the app still runs on an in-memory store, but serverless instances don't
 > share memory, so roles cannot see each other's data. **Atlas is required for real coordination.**
 
+### Troubleshooting the connection
+
+`GET /api/seed` reports the real reason and what to do about it. The usual ones:
+
+| What you see | What it means | Fix |
+| --- | --- | --- |
+| `tlsv1 alert internal error` / `SSL alert number 80` | **Atlas refused the TLS handshake because the connecting IP is not on the access list.** It looks like a certificate problem but is not. | Atlas → Network Access → Add IP Address → **Allow access from anywhere (0.0.0.0/0)**, wait until it turns *Active*. |
+| `Authentication failed` / `bad auth` | Wrong user or password in `MONGODB_URI`. | Re-copy it. If the password contains `@ : / ? # &` it must be percent-encoded. |
+| `querySrv ENOTFOUND` | Cluster hostname wrong or the value was truncated. | Re-paste the full connection string. |
+| `ServerSelectionTimeout` | Nothing answered — usually the access list again, or the cluster is paused. | Check Network Access; resume the cluster. |
+
+Vercel's serverless functions have **no fixed egress IP**, so `0.0.0.0/0` is the normal setting for
+this deployment. The database password is what protects the cluster — which is why it should be
+rotated if it has ever been shared.
+
 ### Local development against Atlas
 
 ```bash

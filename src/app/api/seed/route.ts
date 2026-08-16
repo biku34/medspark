@@ -1,5 +1,5 @@
 import { bad, guard, ok } from "@/lib/api";
-import { driverName, getStore, reseed } from "@/lib/db";
+import { describeMongoError, driverName, getStore, reseed } from "@/lib/db";
 import type { User } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -56,8 +56,9 @@ export async function GET() {
       counts: { users: users.length, medicines: medicines.length, orders: orders.length },
     });
   } catch (err) {
-    // Surface the real reason — a bad URI or a missing IP allowlist entry is
-    // the most common cause and is otherwise invisible in production.
-    return ok({ driver, connected: false, error: (err as Error).message }, 200);
+    // Surface the real reason *and* what to do about it — a missing Atlas IP
+    // allowlist entry shows up only as an opaque OpenSSL alert otherwise.
+    const { message, hint } = describeMongoError(err);
+    return ok({ driver, connected: false, error: message, hint }, 200);
   }
 }

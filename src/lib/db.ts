@@ -160,12 +160,23 @@ const memoryStore: Store = {
 async function mongoDb(): Promise<Db> {
   const { MongoClient } = await import("mongodb");
   const uri = process.env.MONGODB_URI!;
+
   if (!globalThis.__dawaquickMongo) {
     globalThis.__dawaquickMongo = new MongoClient(uri, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 8000,
-    }).connect();
+    })
+      .connect()
+      // Drop the cached promise on failure. Otherwise a single early failure
+      // (typically a missing Atlas IP allowlist entry) is remembered for the
+      // life of the serverless instance, and the app keeps replaying it even
+      // after the cause is fixed.
+      .catch((err) => {
+        globalThis.__dawaquickMongo = undefined;
+        throw err;
+      });
   }
+
   const client = await globalThis.__dawaquickMongo;
   return client.db(process.env.MONGODB_DB || "dawaquick");
 }
@@ -233,6 +244,49 @@ const mongoStore: Store = {
 /* -------------------------------------------------------------------------- */
 
 let seedPromise: Promise<void> | null = null;
+
+/**
+ * Turns a raw driver error into something actionable.
+ *
+ * Atlas rejects connections from IPs that are not on the project's access list
+ * during the TLS handshake, which surfaces as an OpenSSL "tlsv1 alert internal
+ * error" (alert 80) rather than anything resembling "you are not allowed".
+ * That is by far the most common production failure, so name it explicitly.
+ */
+export function describeMongoError(err: unknown): { message: string; hint: string } {
+  const raw = err instanceof Error ? err.message : String(err);
+
+  if (/alert number 80|tlsv1 alert internal error|SSL alert/i.test(raw)) {
+    return {
+      message: raw,
+      hint:
+        "Atlas refused the TLS handshake. This almost always means the connecting IP is not on the Atlas access list. " +
+        "In Atlas go to Network Access → Add IP Address → Allow access from anywhere (0.0.0.0/0) and wait for it to become Active. " +
+        "Serverless platforms like Vercel do not have a fixed egress IP.",
+    };
+  }
+  if (/Authentication failed|bad auth/i.test(raw)) {
+    return {
+      message: raw,
+      hint:
+        "The database username or password in MONGODB_URI is wrong. If the password contains @ : / ? # or &, it must be percent-encoded.",
+    };
+  }
+  if (/ENOTFOUND|querySrv|getaddrinfo/i.test(raw)) {
+    return {
+      message: raw,
+      hint: "The cluster hostname in MONGODB_URI could not be resolved. Check for a typo or a truncated value.",
+    };
+  }
+  if (/timed out|ServerSelectionTimeout/i.test(raw)) {
+    return {
+      message: raw,
+      hint:
+        "No Atlas node answered in time — usually the IP access list again, or a paused/hibernated cluster. Check Network Access and that the cluster is running.",
+    };
+  }
+  return { message: raw, hint: "Check MONGODB_URI, the Atlas access list and that the cluster is running." };
+}
 
 export function driverName(): "mongo" | "memory" {
   return process.env.MONGODB_URI ? "mongo" : "memory";
