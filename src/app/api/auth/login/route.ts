@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const store = await getStore();
   const user = await store.one<User>("users", { email });
   if (!user) return bad("No account found for that email", 401);
-  if (!user.active) return bad("This account is inactive. Contact MedSpark support.", 403);
+  if (!user.active) return bad("This account is inactive. Contact DawaQuick support.", 403);
 
   // Two prototype paths: password, or the simulated OTP shown on the login screen.
   const otpOk = body?.otp && body.otp === (process.env.OTP_DEMO_CODE || "123456");

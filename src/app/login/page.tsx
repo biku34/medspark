@@ -30,7 +30,7 @@ const DEMO_ACCOUNTS: Array<{
 }> = [
   {
     role: "customer",
-    email: "customer@medspark.app",
+    email: "customer@dawaquick.app",
     label: "Customer",
     who: "Aarav Mehta",
     icon: User,
@@ -38,7 +38,7 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "pharmacist",
-    email: "pharmacist@medspark.app",
+    email: "pharmacist@dawaquick.app",
     label: "Pharmacist",
     who: "Dr. Neha Shah",
     icon: Stethoscope,
@@ -46,7 +46,7 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "pharmacy",
-    email: "pharmacy@medspark.app",
+    email: "pharmacy@dawaquick.app",
     label: "Pharmacy",
     who: "HealthFirst Pharmacy",
     icon: Building2,
@@ -54,7 +54,7 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "delivery",
-    email: "rider@medspark.app",
+    email: "rider@dawaquick.app",
     label: "Delivery",
     who: "Imran Qureshi",
     icon: Bike,
@@ -62,7 +62,7 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "provider",
-    email: "physio@medspark.app",
+    email: "physio@dawaquick.app",
     label: "Physiotherapist",
     who: "Dr. Ankit Rawal (PT)",
     icon: HeartPulse,
@@ -70,7 +70,7 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "provider",
-    email: "nurse@medspark.app",
+    email: "nurse@dawaquick.app",
     label: "Nurse",
     who: "Sr. Kavita Patel (RN)",
     icon: HandHeart,
@@ -78,9 +78,9 @@ const DEMO_ACCOUNTS: Array<{
   },
   {
     role: "admin",
-    email: "admin@medspark.app",
+    email: "admin@dawaquick.app",
     label: "Admin",
-    who: "MedSpark Ops",
+    who: "DawaQuick Ops",
     icon: Shield,
     tone: "bg-violet-50 text-violet-700 border-violet-200",
   },
@@ -94,7 +94,7 @@ function LoginInner() {
   const next = params.get("next");
   const { refreshUser, toast } = useApp();
 
-  const [email, setEmail] = useState("customer@medspark.app");
+  const [email, setEmail] = useState("customer@dawaquick.app");
   const [password, setPassword] = useState(PASSWORD);
   const [busy, setBusy] = useState<string | null>(null);
 

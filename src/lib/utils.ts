@@ -19,7 +19,7 @@ export function newId(prefix: string): string {
 }
 
 export function orderCode(): string {
-  return `MS-${randomCode(6)}`;
+  return `DQ-${randomCode(6)}`;
 }
 
 export function prescriptionRef(): string {

@@ -1,10 +1,14 @@
-# MedSpark
+# DawaQuick
 
 **Verified Medicines. Faster Delivery. Safer Care.**
 
+<!-- Brand mark: a capsule (dawa = medicine) leaning forward with motion streaks
+     behind it (quick), on the teal healthcare tile. Defined as inline SVG in
+     src/components/brand.tsx (LogoMark) and src/app/icon.svg (favicon). -->
+
 > _"Don't search pharmacy to pharmacy. Find the medicine near you."_
 
-MedSpark is a **functional prototype** of a hyperlocal healthcare platform with three services:
+DawaQuick is a **functional prototype** of a hyperlocal healthcare platform with three services:
 **medicine delivery**, **physiotherapy at home** and **nursing assistance at home** —
 _"Your Local Healthcare, Delivered to Your Doorstep."_
 
@@ -13,7 +17,7 @@ Medicine delivery is rapid and on demand. The two home-visit services are schedu
 
 The medicine service is not an
 e‑commerce store with a central warehouse — it is a **digital network of local pharmacies**. A
-customer searches for a medicine, MedSpark shows which *nearby, verified* pharmacies actually have
+customer searches for a medicine, DawaQuick shows which *nearby, verified* pharmacies actually have
 it in stock, and **the customer chooses the pharmacy**. Prescription medicines follow a completely
 separate path that cannot be bypassed: upload → pharmacist review → customer verification call →
 approval → pharmacy selection → delivery.
@@ -52,7 +56,7 @@ npm start
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `MONGODB_URI` | No | MongoDB Atlas connection string. Omit to use the in-memory store. |
-| `MONGODB_DB` | No | Database name (default `medspark`). |
+| `MONGODB_DB` | No | Database name (default `dawaquick`). |
 | `SESSION_SECRET` | No | Signs the demo session cookie. |
 | `NEXT_PUBLIC_MAPS_API_KEY` | Placeholder | Real map provider. Prototype renders a synthetic SVG map. |
 | `SMS_PROVIDER_API_KEY` / `OTP_DEMO_CODE` | Placeholder | OTP delivery. Prototype accepts `123456`. |
@@ -81,21 +85,21 @@ The login screen also offers one-tap sign-in for each role.
 
 | Role | Email | Who | Lands on |
 | --- | --- | --- | --- |
-| Customer | `customer@medspark.app` | Aarav Mehta · Sector 11, **Gandhinagar** | `/` |
-| Customer (2nd) | `priya@medspark.app` | Priya Nambiar · Navrangpura, **Ahmedabad** | `/` |
-| Customer (3rd) | `rohan@medspark.app` | Rohan Desai · Sector 11, **Gandhinagar** | `/` |
-| Pharmacist | `pharmacist@medspark.app` | Dr. Neha Shah (HealthFirst, Gandhinagar) | `/pharmacist` |
-| Pharmacist (2nd) | `vikram@medspark.app` | Dr. Vikram Bhatt (CarePlus, Ahmedabad) | `/pharmacist` |
-| Pharmacy | `pharmacy@medspark.app` | HealthFirst Pharmacy desk · Sector 7, Gandhinagar | `/pharmacy` |
-| Pharmacy (2nd) | `careplus@medspark.app` | CarePlus Chemists desk · Navrangpura, Ahmedabad | `/pharmacy` |
-| Delivery | `rider@medspark.app` | Imran Qureshi | `/delivery` |
-| Delivery (2nd) | `sneha@medspark.app` | Sneha Chauhan | `/delivery` |
-| Physiotherapist | `physio@medspark.app` | Dr. Ankit Rawal (PT) · Gandhinagar | `/provider` |
-| Nurse | `nurse@medspark.app` | Sr. Kavita Patel (RN) · Gandhinagar | `/provider` |
-| Physio (2nd) | `riya@medspark.app` | Dr. Riya Bhavsar (PT) · Ahmedabad | `/provider` |
-| Nurse (2nd) | `alpa@medspark.app` | Sr. Alpa Chauhan (RN) · Ahmedabad | `/provider` |
-| Nurse (unverified) | `firoz@medspark.app` | Sr. Firoz Shaikh (RN) · pending approval | `/provider` |
-| Admin | `admin@medspark.app` | MedSpark Ops | `/admin` |
+| Customer | `customer@dawaquick.app` | Aarav Mehta · Sector 11, **Gandhinagar** | `/` |
+| Customer (2nd) | `priya@dawaquick.app` | Priya Nambiar · Navrangpura, **Ahmedabad** | `/` |
+| Customer (3rd) | `rohan@dawaquick.app` | Rohan Desai · Sector 11, **Gandhinagar** | `/` |
+| Pharmacist | `pharmacist@dawaquick.app` | Dr. Neha Shah (HealthFirst, Gandhinagar) | `/pharmacist` |
+| Pharmacist (2nd) | `vikram@dawaquick.app` | Dr. Vikram Bhatt (CarePlus, Ahmedabad) | `/pharmacist` |
+| Pharmacy | `pharmacy@dawaquick.app` | HealthFirst Pharmacy desk · Sector 7, Gandhinagar | `/pharmacy` |
+| Pharmacy (2nd) | `careplus@dawaquick.app` | CarePlus Chemists desk · Navrangpura, Ahmedabad | `/pharmacy` |
+| Delivery | `rider@dawaquick.app` | Imran Qureshi | `/delivery` |
+| Delivery (2nd) | `sneha@dawaquick.app` | Sneha Chauhan | `/delivery` |
+| Physiotherapist | `physio@dawaquick.app` | Dr. Ankit Rawal (PT) · Gandhinagar | `/provider` |
+| Nurse | `nurse@dawaquick.app` | Sr. Kavita Patel (RN) · Gandhinagar | `/provider` |
+| Physio (2nd) | `riya@dawaquick.app` | Dr. Riya Bhavsar (PT) · Ahmedabad | `/provider` |
+| Nurse (2nd) | `alpa@dawaquick.app` | Sr. Alpa Chauhan (RN) · Ahmedabad | `/provider` |
+| Nurse (unverified) | `firoz@dawaquick.app` | Sr. Firoz Shaikh (RN) · pending approval | `/provider` |
+| Admin | `admin@dawaquick.app` | DawaQuick Ops | `/admin` |
 
 The API also accepts the simulated OTP `123456` in place of a password for any known email.
 
@@ -116,7 +120,7 @@ The API also accepts the simulated OTP `123456` in place of a password for any k
    bottom.* Switch the location to **Navrangpura, Ahmedabad** and the entire list changes to the
    Ahmedabad pharmacies — different stock, prices, distances and ETAs.
 5. **Choose Pharmacy** → order summary → pick payment (COD, or UPI/Card to see the simulated OTP)
-   → **Place Order** → an order ID like `MS-4TR7QK` is generated.
+   → **Place Order** → an order ID like `DQ-4TR7QK` is generated.
 6. Tracking screen: promised window (*"delivered between 8:20 PM – 8:50 PM"*), 5-stage tracker,
    simulated map, pharmacy, rider, address, support.
 7. Advance the order either from the real dashboards (below) or with **Simulate next step**.
@@ -144,7 +148,7 @@ The API also accepts the simulated OTP `123456` in place of a password for any k
 ## 4. Home healthcare — physiotherapy & nursing
 
 Two scheduled home-visit services sit alongside medicine delivery. Both are **hourly priced**,
-both require **at least one day's advance notice**, and both are staffed by providers MedSpark
+both require **at least one day's advance notice**, and both are staffed by providers DawaQuick
 credential-verifies before they can accept a single booking.
 
 | | Physiotherapy | Nursing Assistance |
@@ -166,6 +170,18 @@ Same-day booking is impossible, and not merely hidden in the UI:
 * `POST /api/bookings` re-checks it and rejects anything earlier:
   *"Home visits need at least 1 day's advance notice. The earliest available date is 2026-08-17."*
 * Admin cannot switch it off — `minAdvanceDays` is floored at 1 by the settings API.
+
+### Mobile
+
+Both booking screens are built mobile-first and verified at 375 × 812:
+
+* a **sticky action bar** pins the running total and *Confirm Booking* above the bottom nav, so
+  the primary action stays reachable through a long form;
+* the date strip snap-scrolls horizontally **inside its own box** — the grid columns carry
+  `min-w-0` so the scroller can never stretch the page (that bug was caught in testing);
+* provider cards are un-nested from their parent card to reclaim ~32px of width, with a clamped
+  bio and wrapping qualification lines;
+* every booking control is at least 40px tall.
 
 ### Booking flow
 
@@ -204,7 +220,7 @@ and legally appropriate, following the treating doctor's instructions.
 5. Fill patient name, address and reason (physio) or assistance types (nursing) → the price panel
    updates live: **₹500 × 2 = ₹1,000 + ₹49 platform fee = ₹1,049**.
 6. **Confirm Physiotherapy Booking** → booking ID like `BK-26SPX`, status **Booking Requested**.
-7. Sign in as **Physiotherapist** (`physio@medspark.app`) → the request is in the queue →
+7. Sign in as **Physiotherapist** (`physio@dawaquick.app`) → the request is in the queue →
    **Accept Request** → **Confirm Booking** → **Mark Visit Completed**.
    *Nursing adds a **Start Home Visit** stage; try completing without it and the API refuses.*
 8. Back as the customer, the booking page reaches **Home Visit Completed** → **Rate this visit**.
@@ -274,7 +290,7 @@ Admins can onboard and suspend pharmacies but **cannot** approve prescriptions.
 ## 6. Project structure
 
 ```
-medspark/
+dawaquick/
 ├── .env.example                  # every config value, all optional
 ├── next.config.ts
 ├── postcss.config.mjs            # Tailwind v4
@@ -368,7 +384,7 @@ medspark/
 
 ## 7. Service geography — Gandhinagar & Ahmedabad
 
-MedSpark is hyperlocal, so the geography is **real**, not decorative. Every pharmacy carries actual
+DawaQuick is hyperlocal, so the geography is **real**, not decorative. Every pharmacy carries actual
 coordinates and distance is a true great-circle calculation (scaled by 1.25× for road distance).
 
 | | |
@@ -377,7 +393,7 @@ coordinates and distance is a true great-circle calculation (scaled by 1.25× fo
 | **Gandhinagar areas** | Sector 7, Sector 11, Sector 21, Infocity (Sector 24), Kudasan, Sargasan, Randesan, Pethapur, Adalaj |
 | **Ahmedabad areas** | Navrangpura, Vastrapur, Satellite, Bodakdev, Prahlad Nagar, Thaltej (S.G. Highway), Naranpura, Paldi, Maninagar, Chandkheda |
 | **Delivery radius** | 10 km from the pharmacy |
-| **Coverage radius** | 25 km from a city centre — beyond that MedSpark says it isn't live yet |
+| **Coverage radius** | 25 km from a city centre — beyond that DawaQuick says it isn't live yet |
 | **Default area** | Sector 11, Gandhinagar (so the app works before location is granted) |
 
 The two cities are ~22 km apart, which is **outside the 10 km delivery radius**. That falls out of
@@ -393,7 +409,7 @@ Three consequences worth demoing:
   (Infocity, Gandhinagar) and *Parents — senior care* (Maninagar, Ahmedabad). Picking the parents'
   address switches him to the Ahmedabad network — the "family in another city" use case, working.
 * **Outside the service area is handled honestly.** If your browser reports a location outside both
-  cities (i.e. anywhere else), the app says *"MedSpark isn't live in your area yet"* and offers a
+  cities (i.e. anywhere else), the app says *"DawaQuick isn't live in your area yet"* and offers a
   one-tap switch to Gandhinagar or Ahmedabad, rather than faking nearby stock.
 
 Coordinates are approximate to sector/locality level and are defined in
@@ -452,7 +468,7 @@ Deliberate scenarios baked into the data:
 * Every prescription surface carries: *“Prescription medicines are dispensed only after applicable
   prescription and pharmacist verification requirements are satisfied.”*
 * A persistent ribbon marks the build as a prototype with simulated data, payments, OTP and calls.
-* MedSpark is presented throughout as a **technology platform connecting customers to licensed
+* DawaQuick is presented throughout as a **technology platform connecting customers to licensed
   local pharmacies** — it does not dispense, and it does not give medical advice.
 
 ---

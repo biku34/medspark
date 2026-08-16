@@ -408,7 +408,7 @@ export default function PharmacyDashboard() {
             </Card>
             <Card className="lg:col-span-2">
               <p className="text-xs text-ink-500">
-                Earnings shown are medicine subtotals. Delivery fees are collected by MedSpark and
+                Earnings shown are medicine subtotals. Delivery fees are collected by DawaQuick and
                 settled with the delivery partner. Settlement, invoicing and GST reporting are out
                 of scope for this prototype.
               </p>
@@ -504,7 +504,7 @@ export default function PharmacyDashboard() {
           </Button>
         }
       >
-        <Field label="Medicine (from the MedSpark catalogue)" required>
+        <Field label="Medicine (from the DawaQuick catalogue)" required>
           <Select
             value={addForm.medicineId}
             onChange={(e) => {

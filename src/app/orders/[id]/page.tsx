@@ -295,12 +295,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3 rounded-xl border border-ink-200 p-3">
             <Headphones size={18} className="text-brand-600" />
             <span>
-              <span className="block text-sm font-semibold text-ink-900">MedSpark care</span>
+              <span className="block text-sm font-semibold text-ink-900">DawaQuick care</span>
               <span className="block text-xs text-ink-500">1800-000-0000 · 24×7 (simulated)</span>
             </span>
           </div>
           <p className="rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
-            For medical emergencies contact your local emergency number immediately. MedSpark
+            For medical emergencies contact your local emergency number immediately. DawaQuick
             support cannot give medical advice.
           </p>
         </div>

@@ -112,7 +112,7 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
         <div className="mt-4">
           {m.restricted ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <strong>Not available through MedSpark.</strong> This medicine is a scheduled /
+              <strong>Not available through DawaQuick.</strong> This medicine is a scheduled /
               habit-forming drug. It can only be dispensed in person by a pharmacist against a
               valid original prescription, with the record-keeping the law requires.
             </div>
@@ -197,7 +197,7 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
         </div>
         <p className="mt-3 rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
           Information shown is indicative and for demonstration only. Always follow your
-          doctor&apos;s advice and the pack insert. MedSpark does not provide medical advice.
+          doctor&apos;s advice and the pack insert. DawaQuick does not provide medical advice.
         </p>
       </Card>
     </CustomerShell>

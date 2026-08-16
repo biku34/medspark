@@ -232,7 +232,7 @@ export default function HomePage() {
         </p>
         <button
           onClick={() =>
-            document.getElementById("medspark-location-trigger")?.click()
+            document.getElementById("dawaquick-location-trigger")?.click()
           }
           className="shrink-0 text-sm font-semibold text-brand-700 underline"
         >
@@ -506,7 +506,7 @@ export default function HomePage() {
           <div className="flex-1">
             <p className="font-semibold text-ink-900">Sign in to order and track deliveries</p>
             <p className="text-sm text-ink-600">
-              Demo account: <code className="rounded bg-white px-1.5 py-0.5 text-xs">customer@medspark.app</code>{" "}
+              Demo account: <code className="rounded bg-white px-1.5 py-0.5 text-xs">customer@dawaquick.app</code>{" "}
               / <code className="rounded bg-white px-1.5 py-0.5 text-xs">demo1234</code>
             </p>
           </div>
@@ -521,7 +521,7 @@ export default function HomePage() {
       {/* ------------------------------------------------------------------ */}
       <section className="mt-8">
         <SectionTitle
-          title="How MedSpark works"
+          title="How DawaQuick works"
           subtitle="Three services, each with its own clearly separated journey"
         />
 
@@ -631,7 +631,7 @@ export default function HomePage() {
           ))}
         </div>
         <p className="mt-3 rounded-xl border border-ink-200 bg-white p-3 text-xs text-ink-500">
-          Home-visit providers are credential-verified by MedSpark before they can accept bookings.
+          Home-visit providers are credential-verified by DawaQuick before they can accept bookings.
           Nursing assistance supports recovery and daily care — it is not a substitute for emergency
           medical care or a doctor&apos;s consultation.
         </p>
@@ -657,7 +657,7 @@ export default function HomePage() {
           ))}
         </div>
         <p className="mt-5 rounded-2xl bg-ink-900 p-4 text-sm text-ink-100">
-          <strong className="text-white">We are not replacing pharmacies.</strong> MedSpark builds a
+          <strong className="text-white">We are not replacing pharmacies.</strong> DawaQuick builds a
           digital network of local pharmacies — the same trusted chemist near you, now reachable
           in minutes.
         </p>

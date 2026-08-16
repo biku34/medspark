@@ -176,7 +176,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
           {
             status: "CANCELLED" as BookingStatus,
             at: new Date().toISOString(),
-            note: body?.note ?? (isOwner ? "Cancelled by customer" : "Cancelled by MedSpark"),
+            note: body?.note ?? (isOwner ? "Cancelled by customer" : "Cancelled by DawaQuick"),
           },
         ],
       });
@@ -232,7 +232,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       const updated = await advance(
         "ASSIGNED",
         { providerId: provider.id, providerName: provider.name },
-        `Assigned by MedSpark to ${provider.name}`,
+        `Assigned by DawaQuick to ${provider.name}`,
       );
       await notify(provider.userId, {
         kind: "ORDER",

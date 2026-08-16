@@ -1,5 +1,5 @@
 /**
- * MedSpark domain types.
+ * DawaQuick domain types.
  *
  * Every collection is keyed by a string `id` (not Mongo's `_id`) so the same
  * shapes work against both the in-memory prototype store and MongoDB Atlas.
@@ -145,7 +145,7 @@ export interface StatusEvent {
 
 export interface Order {
   id: string;
-  code: string; // MS-2K93F1
+  code: string; // DQ-2K93F1
   customerId: string;
   customerName: string;
   customerPhone: string;

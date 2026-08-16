@@ -36,7 +36,7 @@ export function mockPrescriptionImage(
     <text x="380" y="800" font-family="Georgia, serif" font-size="24" fill="#1e3a8a" font-style="italic">${escapeXml(doctor.replace("Dr. ", ""))}</text>
     <line x1="370" y1="812" x2="580" y2="812" stroke="#94a3b8" stroke-width="1"/>
     <text x="404" y="834" font-family="Arial" font-size="13" fill="#64748b">Signature &amp; Seal</text>
-    <text x="40" y="862" font-family="Arial" font-size="11" fill="#94a3b8">SAMPLE DOCUMENT — generated for the MedSpark prototype. Not a real prescription.</text>
+    <text x="40" y="862" font-family="Arial" font-size="11" fill="#94a3b8">SAMPLE DOCUMENT — generated for the DawaQuick prototype. Not a real prescription.</text>
   </svg>`;
 
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;

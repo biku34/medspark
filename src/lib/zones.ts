@@ -1,5 +1,5 @@
 /**
- * MedSpark service geography — Gandhinagar & Ahmedabad, Gujarat.
+ * DawaQuick service geography — Gandhinagar & Ahmedabad, Gujarat.
  *
  * The platform is hyperlocal, so geography is real: pharmacies carry actual
  * coordinates and distances are true great-circle distances. A pharmacy in
@@ -65,7 +65,7 @@ export const SERVICE_AREAS: ServiceArea[] = [
  */
 export const SERVICE_RADIUS_KM = 10;
 
-/** Beyond this from either city centre, MedSpark simply isn't live yet. */
+/** Beyond this from either city centre, DawaQuick simply isn't live yet. */
 export const CITY_COVERAGE_KM = 25;
 
 /** Where a first-time visitor starts before granting location access. */
@@ -98,7 +98,7 @@ export function nearestCityKm(point: GeoPoint): { city: City; km: number } {
   return scored.sort((a, b) => a.km - b.km)[0];
 }
 
-/** True when the point is inside a city MedSpark currently operates in. */
+/** True when the point is inside a city DawaQuick currently operates in. */
 export function isInServiceArea(point: GeoPoint): boolean {
   return nearestCityKm(point).km <= CITY_COVERAGE_KM;
 }

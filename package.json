@@ -1,8 +1,8 @@
 {
-  "name": "medspark",
+  "name": "dawaquick",
   "version": "0.1.0",
   "private": true,
-  "description": "MedSpark — hyperlocal, pharmacist-verified medicine delivery network (functional prototype)",
+  "description": "DawaQuick — hyperlocal, pharmacist-verified medicine delivery network (functional prototype)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -86,7 +86,7 @@ export function LocationSheet({
         <div>
           <Field
             label="Or pick your area"
-            hint="MedSpark is currently live in Gandhinagar and Ahmedabad."
+            hint="DawaQuick is currently live in Gandhinagar and Ahmedabad."
           >
             <Input
               value={manual}
@@ -135,7 +135,7 @@ export function LocationSheet({
               a.name.toLowerCase().includes(manual.trim().toLowerCase()),
             ) && (
               <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-                No MedSpark area matches “{manual.trim()}”. We deliver in Gandhinagar and
+                No DawaQuick area matches “{manual.trim()}”. We deliver in Gandhinagar and
                 Ahmedabad today — more cities are coming.
               </p>
             )}
@@ -177,7 +177,7 @@ export function LocationPermissionGate() {
         </div>
         <h2 className="text-xl font-bold text-ink-900">Allow location access?</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-600">
-          MedSpark finds medicines at <strong>verified pharmacies near you</strong> and shows
+          DawaQuick finds medicines at <strong>verified pharmacies near you</strong> and shows
           real delivery times. We never share your location with anyone else.
         </p>
         <p className="mt-2 text-xs text-ink-500">

@@ -89,7 +89,7 @@ export default function CartPage() {
             <Badge tone="amber">℞</Badge>
             <p className="text-sm text-amber-900">
               Your cart contains prescription medicines. They can only be ordered against a
-              prescription that a MedSpark pharmacist has verified.{" "}
+              prescription that a DawaQuick pharmacist has verified.{" "}
               {activePrescriptionId ? (
                 <Link href={`/prescriptions/${activePrescriptionId}`} className="font-semibold underline">
                   View your verified prescription

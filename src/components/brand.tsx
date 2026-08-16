@@ -3,14 +3,64 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 export const BRAND = {
-  name: "MedSpark",
+  name: "DawaQuick",
   tagline: "Verified Medicines. Faster Delivery. Safer Care.",
   promise: "Verified medicines from nearby pharmacies, delivered to your doorstep.",
   differentiator: "Don't search pharmacy to pharmacy. Find the medicine near you.",
   positioning: "Your Local Healthcare, Delivered to Your Doorstep.",
 };
 
-/** Wordmark + spark glyph. Pure SVG so it scales and needs no assets. */
+/**
+ * DawaQuick mark: a capsule (dawa = medicine) leaning forward with motion
+ * streaks behind it (quick). Same teal tile as before, so the brand still
+ * reads as calm healthcare rather than a courier company.
+ *
+ * Pure SVG — scales to any size and needs no image assets.
+ */
+export function LogoMark({ size = 32, mono = false }: { size?: number; mono?: boolean }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <rect
+        x="2"
+        y="2"
+        width="44"
+        height="44"
+        rx="13"
+        fill={mono ? "rgba(255,255,255,0.16)" : "var(--color-brand-600)"}
+      />
+
+      {/* speed streaks — the "quick" half of the name */}
+      <g
+        stroke={mono ? "rgba(255,255,255,0.55)" : "var(--color-brand-200)"}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      >
+        <path d="M8 16h7" />
+        <path d="M6 24h9" />
+        <path d="M8 32h7" />
+      </g>
+
+      {/* capsule — the "dawa" half, tilted into the direction of travel */}
+      <g transform="translate(29 24) rotate(-38)">
+        <rect x="-5.75" y="-11" width="11.5" height="22" rx="5.75" fill="#ffffff" />
+        <path
+          d="M-5.75 0h11.5"
+          stroke={mono ? "var(--color-brand-700)" : "var(--color-brand-600)"}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </g>
+    </svg>
+  );
+}
+
+/** Wordmark + mark. */
 export function Logo({
   size = "md",
   href = "/",
@@ -25,32 +75,7 @@ export function Logo({
 
   const mark = (
     <span className="inline-flex items-center gap-2">
-      <svg width={dims} height={dims} viewBox="0 0 48 48" aria-hidden="true">
-        <rect
-          x="2"
-          y="2"
-          width="44"
-          height="44"
-          rx="13"
-          fill={mono ? "rgba(255,255,255,0.16)" : "var(--color-brand-600)"}
-        />
-        {/* cross + spark */}
-        <path
-          d="M24 12v24M12 24h24"
-          stroke="#fff"
-          strokeWidth="5.5"
-          strokeLinecap="round"
-          opacity="0.95"
-        />
-        <path
-          d="M31 15l-8 11h6l-3 8"
-          stroke={mono ? "#fff" : "var(--color-brand-200)"}
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
+      <LogoMark size={dims} mono={mono} />
       <span
         className={clsx(
           "font-bold tracking-tight",
@@ -58,7 +83,7 @@ export function Logo({
           mono ? "text-white" : "text-ink-900",
         )}
       >
-        Med<span className={mono ? "text-brand-200" : "text-brand-600"}>Spark</span>
+        Dawa<span className={mono ? "text-brand-200" : "text-brand-600"}>Quick</span>
       </span>
     </span>
   );
@@ -101,7 +126,7 @@ export function ComplianceNote({
             <strong className="font-semibold">Compliance notice.</strong> Prescription
             medicines are dispensed only after applicable prescription and pharmacist
             verification requirements are satisfied. Final dispensing is subject to
-            applicable laws, prescription validity and pharmacist verification. MedSpark
+            applicable laws, prescription validity and pharmacist verification. DawaQuick
             connects you to licensed local pharmacies — it does not itself dispense
             medicines, and it is not a substitute for medical advice.
           </>

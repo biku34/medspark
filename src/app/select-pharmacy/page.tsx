@@ -20,7 +20,7 @@ const SORTS: Array<{ id: SortKey; label: string }> = [
 
 /**
  * Pharmacy choice screen — the heart of the platform.
- * MedSpark ranks, the customer decides.
+ * DawaQuick ranks, the customer decides.
  */
 export default function SelectPharmacyPage() {
   const { cart, location, origin, activePrescriptionId, geoQuery } = useApp();
@@ -142,7 +142,7 @@ export default function SelectPharmacyPage() {
       )}
 
       <p className="mt-6 rounded-2xl bg-ink-100 p-4 text-xs text-ink-500">
-        MedSpark never auto-assigns a pharmacy. You compare distance, delivery time, price and
+        DawaQuick never auto-assigns a pharmacy. You compare distance, delivery time, price and
         rating, and pick the local chemist you trust.
       </p>
     </CustomerShell>

@@ -8,7 +8,7 @@ import { Badge, Button, Stars } from "./ui";
 /**
  * A pharmacy's offer for the customer's basket.
  *
- * The customer always picks the pharmacy — MedSpark never auto-assigns one.
+ * The customer always picks the pharmacy — DawaQuick never auto-assigns one.
  */
 export function PharmacyOfferCard({
   offer,

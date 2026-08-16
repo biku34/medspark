@@ -8,7 +8,7 @@ import { getStore } from "./db";
  * Production should move to a real auth provider — see README, "Production gaps".
  */
 
-const COOKIE = "medspark_session";
+const COOKIE = "dawaquick_session";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
 export interface Session {
@@ -19,7 +19,7 @@ export interface Session {
 }
 
 function secret(): string {
-  return process.env.SESSION_SECRET || "medspark-dev-secret-change-me";
+  return process.env.SESSION_SECRET || "dawaquick-dev-secret-change-me";
 }
 
 function sign(payload: string): string {

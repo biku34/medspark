@@ -125,10 +125,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         }
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex gap-3">
-            <span className="text-3xl">{meta.emoji}</span>
-            <div>
-              <p className="text-lg font-bold text-ink-900">
+          <div className="flex min-w-0 gap-3">
+            <span className="shrink-0 text-3xl">{meta.emoji}</span>
+            <div className="min-w-0">
+              <p className="text-base font-bold text-ink-900 sm:text-lg">
                 {bookingLabel(booking.serviceType, booking.status)}
               </p>
               <p className="mt-0.5 text-sm text-ink-700">
@@ -136,7 +136,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
           </div>
-          <Badge tone={booking.serviceType === "PHYSIO" ? "brand" : "purple"}>
+          <Badge tone={booking.serviceType === "PHYSIO" ? "brand" : "purple"} className="shrink-0">
             {booking.hours}h visit
           </Badge>
         </div>
@@ -264,7 +264,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* ----------------------------- actions ---------------------------- */}
-      <div className="mt-4 flex flex-wrap gap-2 no-print">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap no-print">
         <Button variant="outline" icon={<Headphones size={16} />} onClick={() => setSupport(true)}>
           Contact support
         </Button>
@@ -294,12 +294,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3 rounded-xl border border-ink-200 p-3">
             <Headphones size={18} className="text-brand-600" />
             <span>
-              <span className="block text-sm font-semibold text-ink-900">MedSpark care</span>
+              <span className="block text-sm font-semibold text-ink-900">DawaQuick care</span>
               <span className="block text-xs text-ink-500">1800-000-0000 · simulated</span>
             </span>
           </div>
           <p className="rounded-xl bg-red-50 p-3 text-xs text-red-800">
-            For medical emergencies contact your local emergency number immediately. MedSpark
+            For medical emergencies contact your local emergency number immediately. DawaQuick
             support cannot give medical advice.
           </p>
         </div>

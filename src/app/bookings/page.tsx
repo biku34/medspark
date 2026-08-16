@@ -111,7 +111,16 @@ export default function BookingsPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge tone={b.status === "COMPLETED" ? "green" : b.status === "CANCELLED" || b.status === "REJECTED" ? "red" : "amber"}>
+                  <Badge
+                    className="max-w-[45%] shrink-0 truncate sm:max-w-none"
+                    tone={
+                      b.status === "COMPLETED"
+                        ? "green"
+                        : b.status === "CANCELLED" || b.status === "REJECTED"
+                          ? "red"
+                          : "amber"
+                    }
+                  >
                     {bookingLabel(b.serviceType, b.status)}
                   </Badge>
                 </div>

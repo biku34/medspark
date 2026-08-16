@@ -14,7 +14,7 @@ export default function NotFound() {
         href="/"
         className="rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700"
       >
-        Back to MedSpark
+        Back to DawaQuick
       </Link>
     </div>
   );

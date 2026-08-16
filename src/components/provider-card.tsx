@@ -25,17 +25,17 @@ export function ProviderCard({
   return (
     <article
       className={
-        "card p-4 transition-shadow " + (selected ? "ring-2 ring-brand-500" : "")
+        "card p-3.5 transition-shadow sm:p-4 " + (selected ? "ring-2 ring-brand-500" : "")
       }
     >
       <div className="flex items-start gap-3.5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-3xl">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-2xl sm:h-14 sm:w-14 sm:text-3xl">
           {p.emoji}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
             <div className="min-w-0">
-              <h3 className="flex items-center gap-1.5 truncate text-base font-semibold text-ink-900">
+              <h3 className="flex items-center gap-1.5 truncate text-[15px] font-semibold text-ink-900 sm:text-base">
                 {p.name}
                 {p.verified && <BadgeCheck size={16} className="shrink-0 text-brand-600" />}
               </h3>
@@ -47,7 +47,7 @@ export function ProviderCard({
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-600">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-600">
             <Stars value={p.rating} count={p.ratingCount} />
             <span className="inline-flex items-center gap-1">
               <Award size={12} className="text-ink-400" />
@@ -61,19 +61,23 @@ export function ProviderCard({
         </div>
       </div>
 
-      <p className="mt-3 text-sm leading-relaxed text-ink-600">{p.bio}</p>
+      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-600 sm:line-clamp-none">
+        {p.bio}
+      </p>
 
       <div className="mt-3 space-y-1.5 text-xs text-ink-600">
         <p className="flex items-start gap-1.5">
           <GraduationCap size={13} className="mt-0.5 shrink-0 text-ink-400" />
-          <span>
+          <span className="min-w-0 break-words">
             {p.qualifications.join(" · ")}
             <span className="text-ink-400"> · Reg. {p.registrationNo}</span>
           </span>
         </p>
         <p className="flex items-start gap-1.5">
           <MapPin size={13} className="mt-0.5 shrink-0 text-ink-400" />
-          <span>Serves {p.serviceAreas.join(", ")} — {p.city}</span>
+          <span className="min-w-0 break-words">
+            Serves {p.serviceAreas.join(", ")} — {p.city}
+          </span>
         </p>
         <p className="flex items-start gap-1.5">
           <Languages size={13} className="mt-0.5 shrink-0 text-ink-400" />
@@ -126,7 +130,7 @@ export function ProviderCard({
       )}
 
       <p className="mt-2 text-[11px] text-ink-400">
-        {p.completedVisits.toLocaleString("en-IN")} home visits completed through MedSpark
+        {p.completedVisits.toLocaleString("en-IN")} home visits completed through DawaQuick
       </p>
     </article>
   );

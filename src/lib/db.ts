@@ -94,9 +94,9 @@ type MemoryData = Record<CollectionName, Record<string, unknown>[]>;
 
 declare global {
   // eslint-disable-next-line no-var
-  var __medsparkMemory: MemoryData | undefined;
+  var __dawaquickMemory: MemoryData | undefined;
   // eslint-disable-next-line no-var
-  var __medsparkMongo: Promise<MongoClientType> | undefined;
+  var __dawaquickMongo: Promise<MongoClientType> | undefined;
 }
 
 function emptyData(): MemoryData {
@@ -107,10 +107,10 @@ function emptyData(): MemoryData {
 }
 
 function memoryData(): MemoryData {
-  if (!globalThis.__medsparkMemory) {
-    globalThis.__medsparkMemory = emptyData();
+  if (!globalThis.__dawaquickMemory) {
+    globalThis.__dawaquickMemory = emptyData();
   }
-  return globalThis.__medsparkMemory;
+  return globalThis.__dawaquickMemory;
 }
 
 const memoryStore: Store = {
@@ -149,7 +149,7 @@ const memoryStore: Store = {
     for (const name of COLLECTIONS) {
       fresh[name] = clone((data[name] ?? []) as Record<string, unknown>[]);
     }
-    globalThis.__medsparkMemory = fresh;
+    globalThis.__dawaquickMemory = fresh;
   },
 };
 
@@ -160,14 +160,14 @@ const memoryStore: Store = {
 async function mongoDb(): Promise<Db> {
   const { MongoClient } = await import("mongodb");
   const uri = process.env.MONGODB_URI!;
-  if (!globalThis.__medsparkMongo) {
-    globalThis.__medsparkMongo = new MongoClient(uri, {
+  if (!globalThis.__dawaquickMongo) {
+    globalThis.__dawaquickMongo = new MongoClient(uri, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 8000,
     }).connect();
   }
-  const client = await globalThis.__medsparkMongo;
-  return client.db(process.env.MONGODB_DB || "medspark");
+  const client = await globalThis.__dawaquickMongo;
+  return client.db(process.env.MONGODB_DB || "dawaquick");
 }
 
 async function col(name: CollectionName): Promise<Collection<Document>> {

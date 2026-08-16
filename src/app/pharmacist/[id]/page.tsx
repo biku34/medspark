@@ -531,7 +531,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
 
         <div className="mt-3 rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
           Suggested script: “Hello {rx.customerName}, this is {""}
-          MedSpark pharmacy verification. I&apos;m calling about prescription {rx.ref} for{" "}
+          DawaQuick pharmacy verification. I&apos;m calling about prescription {rx.ref} for{" "}
           {rx.patientName}. Could you confirm the medicines and quantity prescribed, and your
           delivery address?”
         </div>

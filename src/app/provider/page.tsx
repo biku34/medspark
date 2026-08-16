@@ -180,7 +180,7 @@ export default function ProviderDashboard() {
         <EmptyState
           icon={<UserIcon size={38} />}
           title="No provider profile linked to this account"
-          body="Ask MedSpark admin to attach a provider profile to your login."
+          body="Ask DawaQuick admin to attach a provider profile to your login."
         />
       </StaffShell>
     );
@@ -225,7 +225,7 @@ export default function ProviderDashboard() {
         </div>
         {!provider.verified && (
           <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-            Your profile is awaiting credential verification by MedSpark. You can complete your
+            Your profile is awaiting credential verification by DawaQuick. You can complete your
             profile and upload certificates now — bookings unlock once an admin approves you.
           </p>
         )}
@@ -583,7 +583,7 @@ export default function ProviderDashboard() {
             </Card>
             <Card className="lg:col-span-2">
               <p className="text-xs text-ink-500">
-                Earnings shown are the service charge for completed visits. MedSpark&apos;s platform
+                Earnings shown are the service charge for completed visits. DawaQuick&apos;s platform
                 fee is collected separately from the customer. Settlement, TDS and invoicing are out
                 of scope for this prototype.
               </p>

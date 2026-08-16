@@ -66,7 +66,7 @@ export function CustomerHeader() {
             <Logo size="md" />
 
             <button
-              id="medspark-location-trigger"
+              id="dawaquick-location-trigger"
               onClick={() => setLocOpen(true)}
               className="ml-1 flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left hover:bg-ink-100"
             >
@@ -194,7 +194,7 @@ export function BottomNav() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Shown when the browser reports a location MedSpark doesn't cover yet.
+ * Shown when the browser reports a location DawaQuick doesn't cover yet.
  * Honest about the limit, and one tap away from a servable area.
  */
 function ServiceAreaBanner() {
@@ -206,7 +206,7 @@ function ServiceAreaBanner() {
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
         <MapPin size={18} className="shrink-0 text-amber-600" />
         <p className="min-w-0 flex-1 text-sm text-amber-900">
-          <strong>MedSpark isn&apos;t live in your area yet.</strong> We currently deliver in
+          <strong>DawaQuick isn&apos;t live in your area yet.</strong> We currently deliver in
           Gandhinagar and Ahmedabad. Pick an area there to explore the demo.
         </p>
         <div className="flex gap-2">
@@ -280,7 +280,7 @@ export function CustomerShell({
       <LocationPermissionGate />
       <footer className="border-t border-ink-200 bg-white px-4 py-6 text-center text-xs text-ink-400 no-print">
         <p className="mx-auto max-w-2xl">
-          MedSpark is a technology platform that connects customers with licensed local
+          DawaQuick is a technology platform that connects customers with licensed local
           pharmacies. It does not dispense medicines itself. Prescription medicines are
           dispensed only after applicable prescription and pharmacist verification
           requirements are satisfied.

@@ -185,7 +185,7 @@ export default function AdminDashboard() {
 
   return (
     <StaffShell role="admin">
-      <SectionTitle title="MedSpark network overview" subtitle="Live prototype data" />
+      <SectionTitle title="DawaQuick network overview" subtitle="Live prototype data" />
 
       <Tabs<Tab>
         tabs={[

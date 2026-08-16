@@ -210,9 +210,9 @@ export default function ServiceBookingPage({
   return (
     <CustomerShell wide>
       {/* ------------------------------ header ----------------------------- */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 to-brand-500 p-6 text-white sm:p-8">
-        <span className="text-4xl">{meta.emoji}</span>
-        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{meta.label}</h1>
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 to-brand-500 p-5 text-white sm:p-8">
+        <span className="text-3xl sm:text-4xl">{meta.emoji}</span>
+        <h1 className="mt-2 text-xl font-bold leading-tight sm:text-3xl">{meta.label}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-50">
           {serviceType === "PHYSIO"
             ? "A qualified physiotherapist visits you at home with the equipment needed for your session — no travel, no waiting room."
@@ -255,19 +255,19 @@ export default function ServiceBookingPage({
         </div>
       )}
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
         {/* --------------------------- left column ------------------------- */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Date */}
           <Card>
             <SectionTitle title="1. Choose a date" subtitle="Next 14 available days" />
-            <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            <div className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
               {dates.map((d) => (
                 <button
                   key={d}
                   onClick={() => setDate(d)}
                   className={
-                    "shrink-0 rounded-xl border px-3.5 py-2.5 text-center text-sm transition-colors " +
+                    "shrink-0 snap-start rounded-xl border px-3 py-2.5 text-center text-sm whitespace-nowrap transition-colors sm:px-3.5 " +
                     (date === d
                       ? "border-brand-500 bg-brand-50 font-semibold text-brand-800"
                       : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
@@ -294,7 +294,7 @@ export default function ServiceBookingPage({
                     key={s}
                     onClick={() => setSlot(s)}
                     className={
-                      "rounded-xl border px-3.5 py-2 text-sm transition-colors " +
+                      "min-h-11 min-w-24 flex-1 rounded-xl border px-3 py-2 text-sm transition-colors sm:flex-none sm:px-3.5 " +
                       (slot === s
                         ? "border-brand-500 bg-brand-50 font-semibold text-brand-800"
                         : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
@@ -326,8 +326,9 @@ export default function ServiceBookingPage({
             </div>
           </Card>
 
-          {/* Providers */}
-          <Card>
+          {/* Providers — deliberately not wrapped in a Card: nesting cards
+              doubles the horizontal padding and squeezes phone screens. */}
+          <section>
             <SectionTitle
               title={`3. Choose a ${meta.providerNoun.toLowerCase()}`}
               subtitle="Optional — leave unselected and we'll assign the first available verified provider"
@@ -354,10 +355,10 @@ export default function ServiceBookingPage({
                       : "border-ink-200 bg-white hover:bg-ink-50")
                   }
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl">
                     ✨
                   </span>
-                  <span>
+                  <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-ink-900">
                       Any available {meta.providerNoun.toLowerCase()}
                     </span>
@@ -382,7 +383,7 @@ export default function ServiceBookingPage({
                 ))}
               </div>
             )}
-          </Card>
+          </section>
 
           {/* Visit details */}
           <Card>
@@ -453,7 +454,7 @@ export default function ServiceBookingPage({
         </div>
 
         {/* --------------------------- right column ------------------------ */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <Card>
             <SectionTitle title="Price breakdown" />
             <KeyValue label="Service" value={meta.short} />
@@ -484,7 +485,7 @@ export default function ServiceBookingPage({
             <Button
               full
               size="lg"
-              className="mt-4"
+              className="mt-4 hidden lg:inline-flex"
               loading={submitting}
               disabled={!canSubmit}
               onClick={submit}
@@ -504,7 +505,7 @@ export default function ServiceBookingPage({
             <div className="mt-4 space-y-2 border-t border-ink-100 pt-3 text-xs text-ink-500">
               <p className="flex items-start gap-1.5">
                 <ShieldCheck size={13} className="mt-0.5 shrink-0 text-brand-600" />
-                Every provider is credential-verified by MedSpark before going live.
+                Every provider is credential-verified by DawaQuick before going live.
               </p>
               <p className="flex items-start gap-1.5">
                 <MapPin size={13} className="mt-0.5 shrink-0 text-brand-600" />
@@ -516,6 +517,37 @@ export default function ServiceBookingPage({
               </p>
             </div>
           </Card>
+        </div>
+      </div>
+
+      {/* Spacer so the last card clears the sticky bar + bottom nav on phones */}
+      <div className="h-24 lg:hidden" aria-hidden />
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Sticky mobile action bar — the running total and the primary action */}
+      {/* stay reachable while the customer scrolls a long form.              */}
+      {/* Sits just under the bottom nav (z-40), which overlaps it cleanly.   */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-ink-200 bg-white/95 backdrop-blur lg:hidden no-print">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] leading-none text-ink-500">Total estimated</p>
+            <p className="text-lg font-bold leading-tight text-ink-900">
+              {inr(price?.total ?? 0)}
+            </p>
+            <p className="truncate text-[11px] leading-none text-ink-400">
+              {hours}h · {slot || "pick a slot"}
+            </p>
+          </div>
+          <Button
+            size="lg"
+            className="ml-auto min-w-0 flex-1"
+            loading={submitting}
+            disabled={!canSubmit}
+            onClick={submit}
+          >
+            <span className="truncate">Confirm Booking</span>
+          </Button>
         </div>
       </div>
     </CustomerShell>

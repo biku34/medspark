@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* --------------------------------------------------------------------------
-   MedSpark design tokens
+   DawaQuick design tokens
    Healthcare + quick-commerce: calm teal, warm accents, generous radii,
    large readable type. Deliberately not "hospital corporate".
    -------------------------------------------------------------------------- */
@@ -106,7 +106,7 @@ body {
    Animations
    -------------------------------------------------------------------------- */
 
-@keyframes medspark-pulse-ring {
+@keyframes dawaquick-pulse-ring {
   0% {
     transform: scale(0.6);
     opacity: 0.7;
@@ -118,10 +118,10 @@ body {
 }
 
 .pulse-ring {
-  animation: medspark-pulse-ring 2.2s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+  animation: dawaquick-pulse-ring 2.2s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
 }
 
-@keyframes medspark-rise {
+@keyframes dawaquick-rise {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -133,10 +133,10 @@ body {
 }
 
 .rise {
-  animation: medspark-rise 0.28s ease-out both;
+  animation: dawaquick-rise 0.28s ease-out both;
 }
 
-@keyframes medspark-slide-in {
+@keyframes dawaquick-slide-in {
   from {
     opacity: 0;
     transform: translateY(-12px) scale(0.98);
@@ -148,10 +148,10 @@ body {
 }
 
 .toast-in {
-  animation: medspark-slide-in 0.24s ease-out both;
+  animation: dawaquick-slide-in 0.24s ease-out both;
 }
 
-@keyframes medspark-dash {
+@keyframes dawaquick-dash {
   to {
     stroke-dashoffset: -24;
   }
@@ -159,7 +159,7 @@ body {
 
 .route-dash {
   stroke-dasharray: 8 8;
-  animation: medspark-dash 1.1s linear infinite;
+  animation: dawaquick-dash 1.1s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: `%s · ${BRAND.name}`,
   },
   description:
-    "MedSpark connects you to verified local pharmacies for fast, hyperlocal medicine delivery, with pharmacist verification for prescription medicines.",
+    "DawaQuick connects you to verified local pharmacies for fast, hyperlocal medicine delivery, with pharmacist verification for prescription medicines.",
   applicationName: BRAND.name,
 };
 

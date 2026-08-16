@@ -91,10 +91,10 @@ const Ctx = createContext<AppState | null>(null);
 /* ========================================================================== */
 
 const LS = {
-  cart: "medspark.cart",
-  location: "medspark.location",
-  asked: "medspark.locationAsked",
-  rx: "medspark.activeRx",
+  cart: "dawaquick.cart",
+  location: "dawaquick.location",
+  asked: "dawaquick.locationAsked",
+  rx: "dawaquick.activeRx",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -223,7 +223,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             described.outsideServiceArea
               ? {
                   kind: "info",
-                  title: "MedSpark isn't live in your area yet",
+                  title: "DawaQuick isn't live in your area yet",
                   body: "We currently deliver in Gandhinagar and Ahmedabad — pick an area to explore the demo.",
                 }
               : {

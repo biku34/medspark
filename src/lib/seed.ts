@@ -1,5 +1,5 @@
 /**
- * Demo seed data for MedSpark.
+ * Demo seed data for DawaQuick.
  *
  * Brand names, manufacturers, pharmacies and people here are FICTIONAL and
  * exist only to make the prototype demonstrable. No affiliation with any real
@@ -846,7 +846,7 @@ export const USERS: User[] = [
     id: "usr_aarav",
     role: "customer",
     name: "Aarav Mehta",
-    email: "customer@medspark.app",
+    email: "customer@dawaquick.app",
     phone: "+91 98980 12345",
     password: DEMO_PASSWORD,
     address: CUSTOMER_HOMES.usr_aarav.address,
@@ -884,7 +884,7 @@ export const USERS: User[] = [
     id: "usr_priya",
     role: "customer",
     name: "Priya Nambiar",
-    email: "priya@medspark.app",
+    email: "priya@dawaquick.app",
     phone: "+91 98980 54321",
     password: DEMO_PASSWORD,
     address: CUSTOMER_HOMES.usr_priya.address,
@@ -914,7 +914,7 @@ export const USERS: User[] = [
     id: "usr_rohan",
     role: "customer",
     name: "Rohan Desai",
-    email: "rohan@medspark.app",
+    email: "rohan@dawaquick.app",
     phone: "+91 99790 40182",
     password: DEMO_PASSWORD,
     address: CUSTOMER_HOMES.usr_rohan.address,
@@ -927,7 +927,7 @@ export const USERS: User[] = [
     id: "usr_pharmacist",
     role: "pharmacist",
     name: "Dr. Neha Shah",
-    email: "pharmacist@medspark.app",
+    email: "pharmacist@dawaquick.app",
     phone: "+91 98250 60001",
     password: DEMO_PASSWORD,
     licenseNo: "GSPC-2019-88412",
@@ -939,7 +939,7 @@ export const USERS: User[] = [
     id: "usr_pharmacist2",
     role: "pharmacist",
     name: "Dr. Vikram Bhatt",
-    email: "vikram@medspark.app",
+    email: "vikram@dawaquick.app",
     phone: "+91 98250 60002",
     password: DEMO_PASSWORD,
     licenseNo: "GSPC-2021-11907",
@@ -951,7 +951,7 @@ export const USERS: User[] = [
     id: "usr_pharmacy",
     role: "pharmacy",
     name: "HealthFirst Pharmacy Desk",
-    email: "pharmacy@medspark.app",
+    email: "pharmacy@dawaquick.app",
     phone: "+91 98250 11223",
     password: DEMO_PASSWORD,
     pharmacyId: "ph_healthfirst",
@@ -962,7 +962,7 @@ export const USERS: User[] = [
     id: "usr_pharmacy2",
     role: "pharmacy",
     name: "CarePlus Chemists Desk",
-    email: "careplus@medspark.app",
+    email: "careplus@dawaquick.app",
     phone: "+91 98250 33445",
     password: DEMO_PASSWORD,
     pharmacyId: "ph_careplus",
@@ -973,7 +973,7 @@ export const USERS: User[] = [
     id: "usr_rider",
     role: "delivery",
     name: "Imran Qureshi",
-    email: "rider@medspark.app",
+    email: "rider@dawaquick.app",
     phone: "+91 98795 77712",
     password: DEMO_PASSWORD,
     active: true,
@@ -983,7 +983,7 @@ export const USERS: User[] = [
     id: "usr_rider2",
     role: "delivery",
     name: "Sneha Chauhan",
-    email: "sneha@medspark.app",
+    email: "sneha@dawaquick.app",
     phone: "+91 98795 77713",
     password: DEMO_PASSWORD,
     active: true,
@@ -992,8 +992,8 @@ export const USERS: User[] = [
   {
     id: "usr_admin",
     role: "admin",
-    name: "MedSpark Ops",
-    email: "admin@medspark.app",
+    name: "DawaQuick Ops",
+    email: "admin@dawaquick.app",
     phone: "+91 79 4000 1000",
     password: DEMO_PASSWORD,
     active: true,
@@ -1518,7 +1518,7 @@ export function buildOrders(): Order[] {
   orders.push(
     makeOrder({
       id: "ord_active_1",
-      code: "MS-4TR7QK",
+      code: "DQ-4TR7QK",
       pharmacyId: "ph_sanjeevani",
       type: "OTC",
       items: [line("med_cetirizine", 1, "ph_sanjeevani"), line("med_ors", 2, "ph_sanjeevani")],
@@ -1540,7 +1540,7 @@ export function buildOrders(): Order[] {
   orders.push(
     makeOrder({
       id: "ord_new_1",
-      code: "MS-9WD2LC",
+      code: "DQ-9WD2LC",
       pharmacyId: "ph_healthfirst",
       customerId: "usr_rohan",
       type: "OTC",
@@ -1563,27 +1563,27 @@ export function buildOrders(): Order[] {
     [string, string, number, string, string, "OTC" | "RX", Array<[string, number]>]
   > = [
     // --- Aarav Mehta · Sector 11, Gandhinagar ---
-    ["ord_hist_1", "MS-2K93F1", 1, "usr_aarav", "ph_healthfirst", "OTC", [["med_para650", 2], ["med_ors", 1]]],
-    ["ord_hist_3", "MS-1QA8ZP", 12, "usr_aarav", "ph_healthfirst", "RX", [["med_pantoprazole", 1]]],
-    ["ord_hist_4", "MS-5NB3RT", 3, "usr_aarav", "ph_sanjeevani", "OTC", [["med_diclogel", 1], ["med_para500", 1]]],
-    ["ord_hist_5", "MS-8CV6YU", 4, "usr_aarav", "ph_meditrust", "RX", [["med_metformin", 2]]],
-    ["ord_hist_6", "MS-3ZX9WM", 5, "usr_aarav", "ph_sanjeevani", "OTC", [["med_multivit", 1]]],
-    ["ord_hist_7", "MS-7BN2EQ", 5, "usr_aarav", "ph_sanjeevani", "OTC", [["med_mask", 2], ["med_sanitizer", 1]]],
-    ["ord_hist_9", "MS-9PL5DF", 6, "usr_aarav", "ph_healthfirst", "OTC", [["med_para650", 1]]],
-    ["ord_hist_11", "MS-6TY3JH", 0, "usr_aarav", "ph_sanjeevani", "OTC", [["med_thermometer", 1]]],
-    ["ord_hist_13", "MS-5UI9OP", 2, "usr_aarav", "ph_arogyam", "OTC", [["med_ibuprofen", 1]]],
-    ["ord_hist_14", "MS-8AS2DG", 3, "usr_aarav", "ph_healthfirst", "RX", [["med_montelukast", 1]]],
+    ["ord_hist_1", "DQ-2K93F1", 1, "usr_aarav", "ph_healthfirst", "OTC", [["med_para650", 2], ["med_ors", 1]]],
+    ["ord_hist_3", "DQ-1QA8ZP", 12, "usr_aarav", "ph_healthfirst", "RX", [["med_pantoprazole", 1]]],
+    ["ord_hist_4", "DQ-5NB3RT", 3, "usr_aarav", "ph_sanjeevani", "OTC", [["med_diclogel", 1], ["med_para500", 1]]],
+    ["ord_hist_5", "DQ-8CV6YU", 4, "usr_aarav", "ph_meditrust", "RX", [["med_metformin", 2]]],
+    ["ord_hist_6", "DQ-3ZX9WM", 5, "usr_aarav", "ph_sanjeevani", "OTC", [["med_multivit", 1]]],
+    ["ord_hist_7", "DQ-7BN2EQ", 5, "usr_aarav", "ph_sanjeevani", "OTC", [["med_mask", 2], ["med_sanitizer", 1]]],
+    ["ord_hist_9", "DQ-9PL5DF", 6, "usr_aarav", "ph_healthfirst", "OTC", [["med_para650", 1]]],
+    ["ord_hist_11", "DQ-6TY3JH", 0, "usr_aarav", "ph_sanjeevani", "OTC", [["med_thermometer", 1]]],
+    ["ord_hist_13", "DQ-5UI9OP", 2, "usr_aarav", "ph_arogyam", "OTC", [["med_ibuprofen", 1]]],
+    ["ord_hist_14", "DQ-8AS2DG", 3, "usr_aarav", "ph_healthfirst", "RX", [["med_montelukast", 1]]],
 
     // --- Priya Nambiar · Navrangpura, Ahmedabad ---
-    ["ord_hist_2", "MS-6HJ4XB", 2, "usr_priya", "ph_careplus", "OTC", [["med_cetirizine", 1]]],
-    ["ord_hist_8", "MS-4GH7KL", 6, "usr_priya", "ph_careplus", "RX", [["med_amlodipine", 1]]],
-    ["ord_hist_10", "MS-2MN8VC", 7, "usr_priya", "ph_shreeji", "OTC", [["med_antacid", 1]]],
-    ["ord_hist_12", "MS-1WE4RB", 1, "usr_priya", "ph_shreeji", "RX", [["med_atorvastatin", 1]]],
-    ["ord_hist_15", "MS-3FG6HJ", 4, "usr_priya", "ph_apnacare", "OTC", [["med_cough", 1]]],
+    ["ord_hist_2", "DQ-6HJ4XB", 2, "usr_priya", "ph_careplus", "OTC", [["med_cetirizine", 1]]],
+    ["ord_hist_8", "DQ-4GH7KL", 6, "usr_priya", "ph_careplus", "RX", [["med_amlodipine", 1]]],
+    ["ord_hist_10", "DQ-2MN8VC", 7, "usr_priya", "ph_shreeji", "OTC", [["med_antacid", 1]]],
+    ["ord_hist_12", "DQ-1WE4RB", 1, "usr_priya", "ph_shreeji", "RX", [["med_atorvastatin", 1]]],
+    ["ord_hist_15", "DQ-3FG6HJ", 4, "usr_priya", "ph_apnacare", "OTC", [["med_cough", 1]]],
 
     // --- Rohan Desai · Sector 11, Gandhinagar ---
-    ["ord_hist_16", "MS-4KD9NR", 2, "usr_rohan", "ph_lifeline", "OTC", [["med_cetirizine", 2]]],
-    ["ord_hist_17", "MS-7XC2VB", 5, "usr_rohan", "ph_arogyam", "OTC", [["med_vitc", 1]]],
+    ["ord_hist_16", "DQ-4KD9NR", 2, "usr_rohan", "ph_lifeline", "OTC", [["med_cetirizine", 2]]],
+    ["ord_hist_17", "DQ-7XC2VB", 5, "usr_rohan", "ph_arogyam", "OTC", [["med_vitc", 1]]],
   ];
 
   for (const [id, code, ago, customerId, pharmacyId, type, items] of history) {
@@ -1621,7 +1621,7 @@ export function buildOrders(): Order[] {
   orders.push(
     makeOrder({
       id: "ord_cancel_1",
-      code: "MS-7QW1ZX",
+      code: "DQ-7QW1ZX",
       pharmacyId: "ph_lifeline",
       type: "OTC",
       items: [line("med_para500", 1, "ph_lifeline")],
@@ -1650,7 +1650,7 @@ export function buildNotifications(): Notification[] {
       userId: "usr_aarav",
       kind: "DELIVERY",
       title: "Out for delivery",
-      body: "Imran is on the way with order MS-4TR7QK.",
+      body: "Imran is on the way with order DQ-4TR7QK.",
       href: "/orders/ord_active_1",
       read: false,
       createdAt: minutesAgo(6),
@@ -1670,7 +1670,7 @@ export function buildNotifications(): Notification[] {
       userId: "usr_aarav",
       kind: "ORDER",
       title: "Delivered",
-      body: "Order MS-2K93F1 was delivered. Rate your pharmacy.",
+      body: "Order DQ-2K93F1 was delivered. Rate your pharmacy.",
       href: "/orders/ord_hist_1",
       read: true,
       createdAt: daysAgo(1, 12),
