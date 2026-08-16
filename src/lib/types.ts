@@ -77,6 +77,8 @@ export interface Medicine {
   manufacturer: string;
   type: MedicineType;
   category: "otc" | "prescription" | "wellness";
+  /** Shelf category used for browsing, e.g. "first-aid". See lib/shelf.ts. */
+  subcategory: string;
   /** Indicative MRP per pack — pharmacies price around this. */
   mrp: number;
   packLabel: string; // "strip of 15 tablets"

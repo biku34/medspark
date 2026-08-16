@@ -65,7 +65,7 @@ const QUICK_ACTIONS = [
   {
     href: "/category/wellness",
     label: "Health & Wellness",
-    hint: "Devices, vitamins",
+    hint: "Shop by category",
     icon: Leaf,
     tone: "bg-sky-50 text-sky-700",
   },

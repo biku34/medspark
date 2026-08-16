@@ -1,18 +1,20 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
-import { Leaf, Pill, Stethoscope } from "lucide-react";
+import { Suspense, use, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Leaf, LayoutGrid, Pill, Search, Stethoscope } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { MedicineCard } from "@/components/medicine-card";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
-import { EmptyState, SectionTitle, Skeleton } from "@/components/ui";
+import { Badge, EmptyState, Input, SectionTitle, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
+import { SHELF_CATEGORIES, shelfCategory } from "@/lib/shelf";
 import type { MedicineSearchResult } from "@/lib/types";
 
 const META: Record<
   string,
-  { title: string; subtitle: string; icon: typeof Pill; tone: string; rx?: boolean }
+  { title: string; subtitle: string; icon: typeof Pill; tone: string; rx?: boolean; shelf?: boolean }
 > = {
   otc: {
     title: "OTC Medicines",
@@ -30,51 +32,257 @@ const META: Record<
   },
   wellness: {
     title: "Health & Wellness",
-    subtitle: "Vitamins, supplements, devices and daily-care essentials.",
+    subtitle: "Everything your local pharmacy can deliver — pick a category to start.",
     icon: Leaf,
     tone: "bg-sky-50 text-sky-700",
+    shelf: true,
   },
 };
 
-export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
+function CategoryInner({ slug }: { slug: string }) {
   const meta = META[slug];
-  const { geoQuery } = useApp();
+  const router = useRouter();
+  const params = useSearchParams();
+  const sub = params.get("sub") ?? "";
+  const { geoQuery, origin } = useApp();
+
   const [results, setResults] = useState<MedicineSearchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
 
+  /**
+   * The whole shelf is fetched once and grouped in the browser, so switching
+   * category is instant and the tiles can show real counts and availability.
+   */
   useEffect(() => {
     if (!meta) return;
     setLoading(true);
-    api<{ results: MedicineSearchResult[] }>(
-      `/api/medicines?q=&category=${slug}&limit=60&${geoQuery}`,
-    )
+    const query = meta.shelf
+      ? `/api/medicines?q=&shelf=1&limit=400&${geoQuery}`
+      : `/api/medicines?q=&category=${slug}&limit=200&${geoQuery}`;
+    api<{ results: MedicineSearchResult[] }>(query)
       .then((d) => setResults(d.results))
       .finally(() => setLoading(false));
   }, [slug, meta, geoQuery]);
 
+  /** Counts per shelf category, used on the tiles. */
+  const grouped = useMemo(() => {
+    const map = new Map<string, MedicineSearchResult[]>();
+    for (const r of results) {
+      const key = r.medicine.subcategory;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    }
+    return map;
+  }, [results]);
+
   if (!meta) {
     return (
       <CustomerShell>
-        <EmptyState title="Unknown category" body="Pick a category from the home page." />
+        <EmptyState
+          title="Unknown category"
+          body="Pick a category from the home page."
+        />
       </CustomerShell>
     );
   }
 
   const Icon = meta.icon;
+  const active = sub ? shelfCategory(sub) : undefined;
 
+  const goto = (id: string) =>
+    router.push(id ? `/category/${slug}?sub=${id}` : `/category/${slug}`);
+
+  /* ---------------------------------------------------------------------- */
+  /* Shelf browsing: categories first, then the items inside one            */
+  /* ---------------------------------------------------------------------- */
+  if (meta.shelf) {
+    const items = active ? (grouped.get(active.id) ?? []) : [];
+    const shown = filter
+      ? items.filter((r) =>
+          `${r.medicine.name} ${r.medicine.brand} ${r.medicine.description}`
+            .toLowerCase()
+            .includes(filter.toLowerCase()),
+        )
+      : items;
+
+    /* ----------------------------- tile grid ---------------------------- */
+    if (!active) {
+      return (
+        <CustomerShell wide>
+          <div className="flex items-start gap-3.5">
+            <span
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${meta.tone}`}
+            >
+              <Icon size={24} />
+            </span>
+            <SectionTitle title={meta.title} subtitle={meta.subtitle} />
+          </div>
+
+          <p className="mb-4 text-sm text-ink-500">
+            Delivered from verified pharmacies near{" "}
+            <strong className="text-ink-700">{origin.locality}</strong>.
+          </p>
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Skeleton key={i} className="h-36" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {SHELF_CATEGORIES.map((c) => {
+                const list = grouped.get(c.id) ?? [];
+                const inStock = list.filter((r) => r.available).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => goto(c.id)}
+                    className={`flex flex-col rounded-2xl border p-3.5 text-left transition-transform hover:-translate-y-0.5 sm:p-4 ${c.tone}`}
+                  >
+                    <span className="text-3xl sm:text-4xl">{c.emoji}</span>
+                    <span className="mt-2 text-sm font-semibold leading-tight text-ink-900">
+                      {c.name}
+                    </span>
+                    <span className="mt-0.5 text-[11px] leading-snug text-ink-500">
+                      {c.blurb}
+                    </span>
+                    <span className="mt-2 text-[11px] font-medium text-ink-600">
+                      {list.length} item{list.length === 1 ? "" : "s"}
+                      {list.length > 0 && (
+                        <span className={inStock ? "text-emerald-700" : "text-ink-400"}>
+                          {" "}
+                          · {inStock} in stock
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="mt-6 rounded-2xl bg-ink-100 p-4 text-xs text-ink-500">
+            Prescription medicines are not listed here. They follow a separate route —
+            upload your prescription and a registered pharmacist verifies it before any
+            pharmacy can dispense.
+          </p>
+        </CustomerShell>
+      );
+    }
+
+    /* --------------------------- items in a tile ------------------------- */
+    return (
+      <CustomerShell wide>
+        <button
+          onClick={() => goto("")}
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
+        >
+          <ArrowLeft size={16} /> All categories
+        </button>
+
+        <div className="flex items-start gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl">
+            {active.emoji}
+          </span>
+          <SectionTitle
+            title={active.name}
+            subtitle={`${items.length} product${items.length === 1 ? "" : "s"} · ${active.blurb}`}
+          />
+        </div>
+
+        {/* category rail — chips on phones, sidebar on desktop */}
+        <div className="mt-2 grid gap-4 lg:grid-cols-[210px_minmax(0,1fr)]">
+          <div className="min-w-0">
+            <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
+              <button
+                onClick={() => goto("")}
+                className="flex shrink-0 items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-50 lg:w-full"
+              >
+                <LayoutGrid size={15} /> All categories
+              </button>
+              {SHELF_CATEGORIES.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => goto(c.id)}
+                  className={
+                    "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-medium transition-colors lg:w-full lg:whitespace-normal lg:text-left " +
+                    (c.id === active.id
+                      ? "border-brand-500 bg-brand-50 text-brand-800"
+                      : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
+                  }
+                >
+                  <span>{c.emoji}</span>
+                  <span className="min-w-0 lg:truncate">{c.name}</span>
+                  <span className="ml-auto hidden text-xs text-ink-400 lg:inline">
+                    {(grouped.get(c.id) ?? []).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="relative mb-3">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+              />
+              <Input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder={`Search in ${active.name}…`}
+                className="pl-9"
+              />
+            </div>
+
+            {loading ? (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-44" />
+                ))}
+              </div>
+            ) : shown.length === 0 ? (
+              <EmptyState
+                title={filter ? "Nothing matches that search" : "No products here yet"}
+                body="Try another category, or search the full catalogue."
+              />
+            ) : (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {shown.map((r) => (
+                  <MedicineCard key={r.medicine.id} result={r} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Plain list (OTC / prescription) — unchanged behaviour                  */
+  /* ---------------------------------------------------------------------- */
   return (
     <CustomerShell wide>
       <div className="flex items-start gap-3.5">
-        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${meta.tone}`}>
+        <span
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${meta.tone}`}
+        >
           <Icon size={24} />
         </span>
-        <div>
-          <SectionTitle title={meta.title} subtitle={meta.subtitle} />
-        </div>
+        <SectionTitle title={meta.title} subtitle={meta.subtitle} />
       </div>
 
       {meta.rx && <ComplianceNote className="mb-4" />}
+
+      {!loading && results.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <Badge tone="slate">{results.length} products</Badge>
+          <Badge tone="green">{results.filter((r) => r.available).length} available nearby</Badge>
+        </div>
+      )}
 
       <div className="grid gap-3 lg:grid-cols-2">
         {loading
@@ -86,5 +294,20 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
         <EmptyState title="Nothing in this category yet" body="Check back shortly." />
       )}
     </CustomerShell>
+  );
+}
+
+export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  return (
+    <Suspense
+      fallback={
+        <CustomerShell wide>
+          <Skeleton className="h-64" />
+        </CustomerShell>
+      }
+    >
+      <CategoryInner slug={slug} />
+    </Suspense>
   );
 }

@@ -382,7 +382,45 @@ dawaquick/
 
 ---
 
-## 7. Service geography — Gandhinagar & Ahmedabad
+## 7. Shop by category (the pharmacy shelf)
+
+`/category/wellness` is a **category-first browse**, the way quick-commerce apps work: the customer
+picks a category, then sees the products inside it. It covers everything a local chemist can send
+that does **not** need a prescription — 104 products across 15 categories:
+
+| | | |
+| --- | --- | --- |
+| 💊 Pain Relief | 🤧 Cold, Cough & Fever | 🌿 Digestive Care |
+| 🩹 First Aid & Wound Care | 🩺 Health Devices | 💪 Vitamins & Supplements |
+| 🌸 Feminine Care | ❤️ Sexual Wellness | 👶 Baby & Mother Care |
+| 🧓 Elderly Care | 🩸 Diabetic Care | 🧴 Skin & Hair Care |
+| 🦷 Oral Care | 🧼 Personal Hygiene | 🌱 Ayurveda & Immunity |
+
+* Tiles show a **live item count and how many are in stock nearby**, so the shelf reflects real
+  pharmacy inventory rather than a static menu.
+* Opening a category shows its products with a **sticky category rail** (a sidebar on desktop, a
+  swipeable chip row on phones) and a search box scoped to that category.
+* **Prescription medicines never appear here.** The shelf request is `shelf=1`, which excludes
+  every `RX` item — they keep the upload → pharmacist-verification route.
+* The whole shelf is fetched once and grouped in the browser, so switching category is instant.
+
+Everything downstream is unchanged: adding to cart, comparing nearby pharmacies, the delivery
+radius and the compliance gates all behave exactly as before.
+
+Categories live in [`src/lib/shelf.ts`](src/lib/shelf.ts); products in
+[`src/lib/catalogue-shelf.ts`](src/lib/catalogue-shelf.ts).
+
+### Stock realism
+
+Hand-written stock still encodes the demo scenarios (Paracetamol 650 out at LifeLine, insulin out
+everywhere). The rest of the shelf is filled by a **stable hash**, so availability is identical on
+every reseed, weighted by how broad each pharmacy's range is (Sanjeevani carries ~92%, Riddhi ~52%).
+A few items are deliberately capped — the **Nebulizer Machine is out of stock everywhere**, so the
+"Currently unavailable in nearby pharmacies → Notify me" path is reachable from browsing.
+
+---
+
+## 8. Service geography — Gandhinagar & Ahmedabad
 
 DawaQuick is hyperlocal, so the geography is **real**, not decorative. Every pharmacy carries actual
 coordinates and distance is a true great-circle calculation (scaled by 1.25× for road distance).
@@ -416,17 +454,17 @@ Coordinates are approximate to sector/locality level and are defined in
 [`src/lib/zones.ts`](src/lib/zones.ts). Production replaces this file with real geocoding and a
 distance-matrix API.
 
-## 8. Mock data
+## 9. Mock data
 
 Seeded from `src/lib/seed.ts` (all brands, manufacturers, pharmacies and people are **fictional**;
 no affiliation with any real pharmacy or pharmaceutical company is claimed).
 
 | Collection | Count | Notes |
 | --- | --- | --- |
-| `medicines` | 32 | 20 OTC/wellness + 12 prescription, incl. 1 cold-chain and 1 restricted |
+| `medicines` | 136 | 104 browsable shelf products across 15 categories + 12 prescription, incl. 1 cold-chain and 1 restricted |
 | `pharmacies` | 10 | 5 in Gandhinagar + 4 in Ahmedabad (active & verified), 1 pending verification |
 | `users` | 10 | 3 customers, 2 pharmacists, 2 pharmacy desks, 2 riders, 1 admin |
-| `inventory` | ~230 | per-pharmacy stock and price, deliberately uneven |
+| `inventory` | ~800 | per-pharmacy stock and price; hand-tuned for the demo scenarios, deterministically generated for the wider shelf |
 | `orders` | 20 | 1 live (out for delivery), 1 awaiting pharmacy acceptance, 17 history, 1 cancelled |
 | `prescriptions` | 3 | 2 pending verification, 1 approved with a logged call |
 | `notifications` | 3 | order, prescription and delivery updates |
@@ -451,7 +489,7 @@ Deliberate scenarios baked into the data:
 
 ---
 
-## 9. Safety & compliance design
+## 10. Safety & compliance design
 
 * Prescription medicines can **never** be bought directly. `POST /api/orders` rejects any Rx line
   without an `APPROVED` prescription that belongs to the signed-in customer, and rejects any Rx
@@ -473,7 +511,7 @@ Deliberate scenarios baked into the data:
 
 ---
 
-## 10. What needs real APIs for production
+## 11. What needs real APIs for production
 
 | Area | Prototype | Production |
 | --- | --- | --- |
@@ -495,7 +533,7 @@ Deliberate scenarios baked into the data:
 
 ---
 
-## 11. Scripts
+## 12. Scripts
 
 ```bash
 npm run dev
@@ -512,7 +550,7 @@ npm run typecheck
 
 ---
 
-## 12. Disclaimer
+## 13. Disclaimer
 
 This is a demonstration prototype built for product evaluation. It is **not** a licensed pharmacy
 service, dispenses nothing, and must not be used for real medical decisions. All patient,

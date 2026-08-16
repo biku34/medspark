@@ -18,6 +18,8 @@ import type {
 } from "./types";
 import { etaWindow, pharmacyDistanceKm } from "./utils";
 import { mockPrescriptionImage } from "./sample-prescription";
+import { LEGACY_SUBCATEGORY, buildShelfCatalogue } from "./catalogue-shelf";
+import { RX_SUBCATEGORY } from "./shelf";
 import {
   PROVIDERS,
   PROVIDER_USERS,
@@ -41,7 +43,7 @@ const daysAgo = (d: number, hour = 11) => {
 /* Medicines                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export const MEDICINES: Medicine[] = [
+const CORE_MEDICINES: Omit<Medicine, "subcategory">[] = [
   {
     id: "med_para650",
     name: "Paracetamol 650 mg",
@@ -575,6 +577,21 @@ export const MEDICINES: Medicine[] = [
     emoji: "⛔",
     restricted: true,
   },
+];
+
+/**
+ * Full catalogue = the hand-written core (including every prescription
+ * medicine) plus the browsable shelf. Shelf placement for the core items comes
+ * from LEGACY_SUBCATEGORY; anything prescription-only is parked under the
+ * RX subcategory so it never appears in shelf browsing.
+ */
+export const MEDICINES: Medicine[] = [
+  ...CORE_MEDICINES.map((m) => ({
+    ...m,
+    subcategory:
+      m.type === "RX" ? RX_SUBCATEGORY : (LEGACY_SUBCATEGORY[m.id] ?? "hygiene"),
+  })),
+  ...buildShelfCatalogue(),
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -1293,22 +1310,89 @@ const PRICE_FACTOR: Record<string, number> = {
   ph_nirog: 1.0,
 };
 
+/**
+ * Stable hash so generated stock is identical on every reseed — a demo where
+ * availability flickers between reloads is worse than useless.
+ */
+function stableHash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+/**
+ * Hard caps on how many pharmacies stock a given item.
+ * Without these, nine pharmacies between them carry everything and the
+ * "available nearby / notify me" behaviour never gets to show itself.
+ */
+const SCARCE: Record<string, number> = {
+  "med_nebulizer-machine": 0, // out of stock everywhere -> "notify me" flow
+  "med_menstrual-cup": 1,
+  "med_ovulation-test-kit": 1,
+  "med_cervical-contour-pillow": 1,
+  "med_home-first-aid-kit": 2,
+  "med_glucometer-kit": 2,
+};
+
+/** How much of the wider shelf each pharmacy carries (0–100). */
+const SHELF_BREADTH: Record<string, number> = {
+  ph_sanjeevani: 92,
+  ph_shreeji: 90,
+  ph_meditrust: 86,
+  ph_healthfirst: 84,
+  ph_careplus: 74,
+  ph_arogyam: 72,
+  ph_apnacare: 66,
+  ph_lifeline: 58,
+  ph_riddhi: 52,
+};
+
 export function buildInventory(): InventoryItem[] {
   const items: InventoryItem[] = [];
+  const seen = new Set<string>();
+
+  const push = (pharmacyId: string, medicineId: string, stock: number) => {
+    const key = `${pharmacyId}|${medicineId}`;
+    if (seen.has(key)) return;
+    const med = MEDICINES.find((m) => m.id === medicineId);
+    if (!med) return;
+    seen.add(key);
+    items.push({
+      id: `inv_${pharmacyId}_${medicineId}`,
+      pharmacyId,
+      medicineId,
+      stock,
+      price: Math.round(med.mrp * (PRICE_FACTOR[pharmacyId] ?? 1)),
+      updatedAt: minutesAgo(Math.floor(Math.random() * 4000)),
+    });
+  };
+
+  // Hand-written plan first: it encodes the deliberate demo scenarios
+  // (Paracetamol 650 out at LifeLine, insulin out everywhere, and so on).
   for (const [pharmacyId, plan] of Object.entries(STOCK_PLAN)) {
-    for (const [medicineId, stock] of Object.entries(plan)) {
-      const med = MEDICINES.find((m) => m.id === medicineId);
-      if (!med) continue;
-      items.push({
-        id: `inv_${pharmacyId}_${medicineId}`,
-        pharmacyId,
-        medicineId,
-        stock,
-        price: Math.round(med.mrp * (PRICE_FACTOR[pharmacyId] ?? 1)),
-        updatedAt: minutesAgo(Math.floor(Math.random() * 4000)),
-      });
+    for (const [medicineId, stock] of Object.entries(plan)) push(pharmacyId, medicineId, stock);
+  }
+
+  // Then fill the rest of the shelf so browsing a category shows real depth.
+  // Nirog stays deliberately sparse — it is still awaiting verification.
+  // Medicines are the outer loop so SCARCE caps can be applied per product.
+  for (const med of MEDICINES) {
+    if (med.type === "RX") continue; // prescription stock stays hand-tuned
+    const cap = SCARCE[med.id];
+    let carried = 0;
+    for (const [pharmacyId, breadth] of Object.entries(SHELF_BREADTH)) {
+      if (cap !== undefined && carried >= cap) break;
+      const roll = stableHash(`${pharmacyId}:${med.id}`) % 100;
+      if (roll >= breadth) continue; // this pharmacy simply doesn't carry it
+      const qty = 3 + (stableHash(`${med.id}:${pharmacyId}`) % 38);
+      push(pharmacyId, med.id, qty);
+      carried++;
     }
   }
+
   return items;
 }
 

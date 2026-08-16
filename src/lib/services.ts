@@ -56,7 +56,15 @@ export async function servingPharmacies(
 
 export async function searchMedicines(
   query: string,
-  opts: { category?: string; limit?: number; origin?: GeoPoint } = {},
+  opts: {
+    category?: string;
+    /** Shelf category, e.g. "first-aid". */
+    subcategory?: string;
+    /** Exclude prescription-only medicines (shelf browsing). */
+    shelfOnly?: boolean;
+    limit?: number;
+    origin?: GeoPoint;
+  } = {},
 ): Promise<MedicineSearchResult[]> {
   const origin = opts.origin ?? DEFAULT_ORIGIN;
   const store = await getStore();
@@ -78,6 +86,8 @@ export async function searchMedicines(
     });
   }
   if (opts.category) matched = matched.filter((m) => m.category === opts.category);
+  if (opts.subcategory) matched = matched.filter((m) => m.subcategory === opts.subcategory);
+  if (opts.shelfOnly) matched = matched.filter((m) => m.type !== "RX");
 
   // Rank exact-ish name matches first.
   matched.sort((a, b) => {
@@ -113,6 +123,11 @@ export async function searchMedicines(
   return results;
 }
 
+/**
+ * Availability for a single medicine, computed directly rather than by
+ * re-searching its own name — with a catalogue this large, name collisions
+ * would otherwise make a product look unavailable when it isn't.
+ */
 export async function medicineById(
   id: string,
   origin: GeoPoint = DEFAULT_ORIGIN,
@@ -120,18 +135,30 @@ export async function medicineById(
   const store = await getStore();
   const medicine = await store.one<Medicine>("medicines", { id });
   if (!medicine) return null;
-  const [result] = await searchMedicines(medicine.name, { origin });
-  return result && result.medicine.id === id
-    ? result
-    : {
-        medicine,
-        available: false,
-        pharmacyCount: 0,
-        minPrice: null,
-        maxPrice: null,
-        nearestKm: null,
-        fastestEta: null,
-      };
+
+  const [inventory, pharmacies] = await Promise.all([
+    store.list<InventoryItem>("inventory", { medicineId: id }),
+    servingPharmacies(origin),
+  ]);
+  const byPharmacy = new Map(pharmacies.map((p) => [p.id, p]));
+  const rows = inventory.filter((i) => i.stock > 0 && byPharmacy.has(i.pharmacyId));
+
+  const prices = rows.map((r) => r.price);
+  const distances = rows.map((r) => pharmacyDistanceKm(byPharmacy.get(r.pharmacyId)!, origin));
+  const etas = rows.map((r) => {
+    const p = byPharmacy.get(r.pharmacyId)!;
+    return etaWindow(pharmacyDistanceKm(p, origin), p.prepMinutes).from;
+  });
+
+  return {
+    medicine,
+    available: rows.length > 0,
+    pharmacyCount: rows.length,
+    minPrice: prices.length ? Math.min(...prices) : null,
+    maxPrice: prices.length ? Math.max(...prices) : null,
+    nearestKm: distances.length ? Math.min(...distances) : null,
+    fastestEta: etas.length ? Math.min(...etas) : null,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
