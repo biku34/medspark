@@ -12,9 +12,9 @@ import {
   LayoutGrid,
   LogIn,
   MapPin,
-  RefreshCw,
   Search,
   ShoppingCart,
+  Stethoscope,
   Truck,
   User as UserIcon,
 } from "lucide-react";
@@ -122,10 +122,10 @@ export function CustomerHeader() {
 
               <nav className="ml-auto flex items-center gap-0.5">
                 <Link
-                  href="/bookings"
+                  href="/services"
                   className="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-bold text-white/85 hover:bg-white/10 sm:flex"
                 >
-                  <HeartPulse size={15} />
+                  <Stethoscope size={15} />
                   Home visits
                 </Link>
                 <Link
@@ -203,11 +203,20 @@ export function CustomerHeader() {
 /* Bottom navigation (mobile)                                                 */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Five tabs, and home visits earn one of them.
+ *
+ * Repeat delivery lost its slot deliberately: it is a setting you put on an
+ * order (at checkout, from a care plan, from the home band), not somewhere you
+ * go. Physiotherapy and nursing are a service you buy — half of what this
+ * platform sells — and leaving them out of the tab bar was the single loudest
+ * signal that they were an afterthought.
+ */
 const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/category/wellness", label: "Shop", icon: LayoutGrid },
+  { href: "/services", label: "Visits", icon: Stethoscope },
   { href: "/care", label: "Care", icon: HeartPulse },
-  { href: "/subscriptions", label: "Repeat", icon: RefreshCw },
   { href: "/profile", label: "Account", icon: UserIcon },
 ];
 

@@ -2,22 +2,25 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PackageSearch, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, PackageSearch, Search, SlidersHorizontal } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import Link from "next/link";
+import { SERVICE_PALETTE, ServiceArt } from "@/components/art";
 import { ProductCard, ProductGrid } from "@/components/product-card";
 import { useApp } from "@/components/providers";
 import { Button, EmptyState, Input, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
+import { matchServices } from "@/lib/service-search";
 import type { MedicineSearchResult } from "@/lib/types";
 
 const SUGGESTED = [
   "Paracetamol 650",
   "Cetirizine",
-  "ORS",
+  "Physiotherapy",
+  "Nurse at home",
   "Cough syrup",
-  "Vitamin C",
   "Thermometer",
-  "Pantoprazole",
+  "Sanitary pads",
 ];
 
 type Filter = "all" | "otc" | "prescription" | "wellness" | "available";
@@ -60,6 +63,9 @@ function SearchInner() {
     setTerm(initial);
     void run(initial);
   }, [initial, run]);
+
+  // A pharmacy search box is where people ask for a nurse too.
+  const serviceHits = matchServices(initial);
 
   const filtered = results.filter((r) => {
     if (filter === "all") return true;
@@ -132,6 +138,42 @@ function SearchInner() {
             ))}
           </div>
         </div>
+      )}
+
+      {serviceHits.length > 0 && (
+        <section className="mt-4">
+          <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-ink-400">
+            Home visits
+          </p>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {serviceHits.map((s) => {
+              const art = s.type === "PHYSIO" ? "physio" : "nursing";
+              const pal = SERVICE_PALETTE[art];
+              return (
+                <Link
+                  key={s.type}
+                  href={`/services/${s.slug}`}
+                  className="flex items-center gap-3 rounded-2xl p-3.5 ring-1 transition-transform active:scale-[0.99]"
+                  style={{ background: pal.well, boxShadow: `inset 0 0 0 1px ${pal.pop}` }}
+                >
+                  <ServiceArt kind={art} size={44} className="shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className="block text-[15px] font-extrabold leading-tight"
+                      style={{ color: pal.deep }}
+                    >
+                      {s.label}
+                    </span>
+                    <span className="block text-[12px] text-ink-600">
+                      Book a verified professional to visit you at home
+                    </span>
+                  </span>
+                  <ChevronRight size={18} strokeWidth={2.6} style={{ color: pal.base }} />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       <p className="mt-4 text-sm text-ink-500">
