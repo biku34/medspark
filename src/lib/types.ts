@@ -237,8 +237,40 @@ export interface Prescription {
   refillsUsed?: number;
   /** YYYY-MM-DD — after this date the prescription can no longer be dispensed. */
   validUntil?: string;
+  /**
+   * What the AI read, kept for audit.
+   *
+   * A draft, never a decision: it is shown on the verification desk for the
+   * pharmacist to accept line by line, and carries the models used and the
+   * lines that were filtered out so a dispensing decision can be traced back.
+   */
+  aiDraft?: AiPrescriptionDraft;
   createdAt: string;
   reviewedAt?: string;
+}
+
+export interface AiDraftLine extends PrescriptionMedicine {
+  /** The words on the page this line was read from. */
+  sourceText: string;
+  /** Every model that had an opinion picked the same catalogue medicine. */
+  agreed: boolean;
+  proposedBy: string[];
+}
+
+export interface AiPrescriptionDraft {
+  ok: boolean;
+  unreadable: boolean;
+  transcription: string;
+  doctorName?: string;
+  patientName?: string;
+  lines: AiDraftLine[];
+  /** Read from the page but matched nothing in the catalogue. */
+  unmatched: string[];
+  notes: string[];
+  models: string[];
+  createdAt: string;
+  /** Set once a pharmacist pulls the draft into the form. */
+  appliedAt?: string;
 }
 
 export interface Notification {
