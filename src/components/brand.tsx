@@ -12,8 +12,8 @@ export const BRAND = {
 
 /**
  * DawaQuick mark: a capsule (dawa = medicine) leaning forward with motion
- * streaks behind it (quick). Same teal tile as before, so the brand still
- * reads as calm healthcare rather than a courier company.
+ * streaks behind it (quick). Blue tile, so the brand reads as calm
+ * healthcare rather than a courier company.
  *
  * Pure SVG — scales to any size and needs no image assets.
  */

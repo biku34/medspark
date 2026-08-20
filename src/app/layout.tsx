@@ -15,7 +15,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d8c6f",
+  // Tints the browser chrome on a phone, so it has to be the same colour as
+  // the header it sits directly above — brand-700. A stale value here leaves a
+  // green bar over a blue app, which is the one place a hardcoded hex is
+  // unavoidable: metadata cannot read a CSS custom property.
+  themeColor: "#0a439d",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
