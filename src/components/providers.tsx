@@ -25,6 +25,8 @@ export interface CartLine {
   emoji: string;
   /** Shelf category — drives the pack artwork in the cart. */
   subcategory?: string;
+  /** Catalogue MRP, so the cart can show what the shelf price undercuts. */
+  mrp?: number;
   price: number;
   qty: number;
 }

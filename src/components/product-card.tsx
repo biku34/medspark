@@ -51,6 +51,7 @@ function AddControl({ result }: { result: MedicineSearchResult }) {
           type: m.type,
           emoji: m.emoji,
           subcategory: m.subcategory,
+          mrp: m.mrp,
           price,
         });
         toast({ kind: "success", title: `${m.name} added` });

@@ -184,6 +184,7 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
                     type: m.type,
                     emoji: m.emoji,
                     subcategory: m.subcategory,
+                    mrp: m.mrp,
                     price,
                   });
                   toast({ kind: "success", title: `${m.name} added to cart` });

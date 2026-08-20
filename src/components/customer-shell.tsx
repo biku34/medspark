@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ChevronDown,
@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   LogIn,
   MapPin,
-  Search,
   ShoppingCart,
   Stethoscope,
   Truck,
@@ -23,6 +22,7 @@ import { LogoMark } from "./brand";
 import { LocationPermissionGate, LocationSheet } from "./location-sheet";
 import { useApp } from "./providers";
 import { ProductArt } from "./art";
+import { SearchSuggest } from "./search-suggest";
 import { MiniTracker } from "./order-tracker";
 import { api } from "@/lib/client";
 import { ORDER_LABELS, type Order } from "@/lib/types";
@@ -32,68 +32,6 @@ import { inr } from "@/lib/utils";
 /* -------------------------------------------------------------------------- */
 /* Header                                                                     */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Rotating placeholder.
- *
- * A static "search for medicines" box teaches nobody what the catalogue holds.
- * Cycling real products is how a shopper finds out there are pads and BP
- * monitors in here too, without a line of marketing copy.
- */
-const HINTS = [
-  "paracetamol",
-  "sanitary pads",
-  "BP monitor",
-  "cough syrup",
-  "baby wipes",
-  "glucometer strips",
-  "hand sanitiser",
-  "vitamin D",
-];
-
-function SearchBar({ autoFocusHint = true }: { autoFocusHint?: boolean }) {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-  const [hint, setHint] = useState(0);
-
-  useEffect(() => {
-    if (!autoFocusHint) return;
-    const t = setInterval(() => setHint((h) => (h + 1) % HINTS.length), 2600);
-    return () => clearInterval(t);
-  }, [autoFocusHint]);
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-      }}
-      className="relative"
-      role="search"
-    >
-      <Search
-        size={18}
-        strokeWidth={2.6}
-        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500"
-      />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        aria-label="Search medicines and health products"
-        className="h-12 w-full rounded-xl border border-ink-200 bg-white pl-11 pr-3 text-[15px] font-medium text-ink-900 shadow-sm outline-none placeholder:text-transparent focus:border-brand-400"
-      />
-      {/* The animated hint sits behind the real input so typing hides it. */}
-      {q === "" && (
-        <span className="pointer-events-none absolute left-11 top-1/2 flex -translate-y-1/2 items-baseline gap-1 text-[15px] text-ink-500">
-          Search
-          <span key={hint} className="rise font-semibold text-ink-700">
-            &ldquo;{HINTS[hint]}&rdquo;
-          </span>
-        </span>
-      )}
-    </form>
-  );
-}
 
 /**
  * The header is the promise.
@@ -191,7 +129,7 @@ export function CustomerHeader() {
         {/* search rides the fold between the brand band and the page */}
         <div className="bg-brand-700 pb-2.5">
           <div className="mx-auto max-w-6xl px-3 sm:px-4">
-            <SearchBar />
+            <SearchSuggest />
           </div>
         </div>
       </header>

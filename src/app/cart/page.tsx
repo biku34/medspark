@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock3, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowRight, Clock3, Minus, Plus, ShoppingCart, Trash2, PiggyBank } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { ProductArt, paletteFor } from "@/components/art";
+import { CartExtras } from "@/components/cart-extras";
 import { useApp } from "@/components/providers";
 import { Button, EmptyState } from "@/components/ui";
 import { inr } from "@/lib/utils";
@@ -15,6 +16,12 @@ export default function CartPage() {
   const router = useRouter();
 
   const hasRx = cart.some((l) => l.type === "RX");
+
+  // MRP rides on the cart line, so the saving is simply what the pharmacy
+  // shelf price undercuts it by. Lines saved before this existed have no
+  // mrp and contribute nothing rather than a wrong number.
+  const mrpTotal = cart.reduce((s, l) => s + (l.mrp ?? l.price) * l.qty, 0);
+  const saved = Math.max(0, mrpTotal - cartTotal);
 
   if (cart.length === 0) {
     return (
@@ -100,6 +107,18 @@ export default function CartPage() {
         ))}
       </div>
 
+      {/* A price only persuades next to a bigger one, and here the bigger one
+          is real: pharmacies price under MRP and the gap is the customer's. */}
+      {saved > 0 && (
+        <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-ok-200 bg-ok-50 px-3.5 py-2.5">
+          <PiggyBank size={18} className="shrink-0 text-ok-700" />
+          <p className="nums text-[13px] font-semibold text-ok-800">
+            You save <strong className="font-extrabold">{inr(saved)}</strong> on this cart
+            <span className="ml-1 font-normal text-ok-700/80">(MRP {inr(mrpTotal)})</span>
+          </p>
+        </div>
+      )}
+
       {/* bill */}
       <div className="mt-3 rounded-xl border border-ink-200 bg-white p-4">
         <h2 className="text-[13px] font-extrabold uppercase tracking-wide text-ink-500">
@@ -139,6 +158,8 @@ export default function CartPage() {
           )}
         </div>
       )}
+
+      <CartExtras />
 
       {/* sticky checkout */}
       <div className="fixed inset-x-0 bottom-12 z-30 px-3 sm:static sm:mt-4 sm:px-0 no-print">
