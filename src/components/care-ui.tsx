@@ -28,23 +28,44 @@ import { planProgressIndex } from "@/lib/care";
 
 const STATUS_TONE: Record<CarePlanStatus, string> = {
   SUBMITTED: "bg-ink-200 text-ink-700",
-  IN_REVIEW: "bg-sky-600 text-white",
-  PLAN_READY: "bg-amber-500 text-white",
-  CHANGES_REQUESTED: "bg-amber-500 text-white",
+  IN_REVIEW: "bg-care-600 text-white",
+  PLAN_READY: "bg-rx-500 text-white",
+  CHANGES_REQUESTED: "bg-rx-500 text-white",
   ACTIVE: "bg-brand-600 text-white",
   COMPLETED: "bg-ink-700 text-white",
   CANCELLED: "bg-red-600 text-white",
 };
 
-export function CarePlanBadge({ status }: { status: CarePlanStatus }) {
+/**
+ * Badge copy is deliberately shorter than the full status label. A chip that
+ * wraps to three lines stops being a chip.
+ */
+const BADGE_LABEL: Record<CarePlanStatus, string> = {
+  SUBMITTED: "Received",
+  IN_REVIEW: "Reviewing",
+  PLAN_READY: "Needs you",
+  CHANGES_REQUESTED: "Revising",
+  ACTIVE: "Active",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
+export function CarePlanBadge({
+  status,
+  full,
+}: {
+  status: CarePlanStatus;
+  /** Spell the whole status out — for detail headers, not list chips. */
+  full?: boolean;
+}) {
   return (
     <span
       className={clsx(
-        "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide",
+        "inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide",
         STATUS_TONE[status],
       )}
     >
-      {CARE_PLAN_LABELS[status]}
+      {full ? CARE_PLAN_LABELS[status] : BADGE_LABEL[status]}
     </span>
   );
 }
@@ -116,7 +137,7 @@ const SHORT_STEP: Record<CarePlanStatus, string> = {
 /* documents                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const DOC_ICON: Record<HealthDocumentKind, ReactNode> = {
+export const DOC_ICON: Record<HealthDocumentKind, ReactNode> = {
   DISCHARGE_SUMMARY: <Hospital size={14} />,
   LAB_REPORT: <FlaskConical size={14} />,
   PRESCRIPTION: <Pill size={14} />,
@@ -161,8 +182,8 @@ export function DocumentTile({ doc }: { doc: HealthDocument }) {
 
 const VERDICT_CLASS = {
   green: "border-brand-200 bg-brand-50 text-brand-800",
-  blue: "border-sky-200 bg-sky-50 text-sky-800",
-  amber: "border-amber-200 bg-amber-50 text-amber-800",
+  blue: "border-care-200 bg-care-50 text-care-800",
+  amber: "border-rx-200 bg-rx-50 text-rx-800",
   red: "border-red-200 bg-red-50 text-red-800",
 } as const;
 
@@ -208,7 +229,7 @@ export function MedicineLine({ med }: { med: CarePlanMedicine }) {
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-500">
         {med.type === "RX" && (
-          <span className="font-bold text-amber-700">℞ prescription medicine</span>
+          <span className="font-bold text-rx-700">℞ prescription medicine</span>
         )}
         {!stop && med.durationDays > 0 && <span>{med.durationDays} days</span>}
         {med.repeat && (

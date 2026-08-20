@@ -13,6 +13,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ProductArt, paletteFor } from "@/components/art";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import {
@@ -230,8 +231,11 @@ function CheckoutInner() {
             const price = line?.price ?? l.price;
             return (
               <li key={l.medicineId} className="flex items-center gap-3 py-3 first:pt-0">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink-50 text-xl">
-                  {l.emoji}
+                <span
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: paletteFor(l.subcategory ?? "").well }}
+                >
+                  <ProductArt subcategory={l.subcategory ?? ""} form={l.form} size={34} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-ink-900">{l.name}</p>

@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ServiceArt } from "@/components/art";
 import { ProviderCard } from "@/components/provider-card";
 import { useApp } from "@/components/providers";
 import {
@@ -211,7 +212,7 @@ export default function ServiceBookingPage({
     <CustomerShell wide>
       {/* ------------------------------ header ----------------------------- */}
       <section className="overflow-hidden rounded-xl bg-brand-600 p-4 text-white sm:p-6">
-        <span className="text-3xl sm:text-4xl">{meta.emoji}</span>
+        <ServiceArt kind={serviceType === "PHYSIO" ? "physio" : "nursing"} size={56} />
         <h1 className="mt-2 text-xl font-bold leading-tight sm:text-3xl">{meta.label}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-50">
           {serviceType === "PHYSIO"

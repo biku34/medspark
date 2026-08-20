@@ -15,6 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ProductArt, paletteFor } from "@/components/art";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import { EmptyState, KeyValue, Skeleton } from "@/components/ui";
@@ -69,13 +70,16 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
 
       <div className="grid gap-4 sm:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
         {/* image */}
-        <div className="img-well relative flex aspect-square items-center justify-center rounded-xl border border-ink-200">
+        <div
+          className="relative flex aspect-square items-center justify-center rounded-2xl"
+          style={{ background: paletteFor(m.subcategory).well }}
+        >
           {hasDiscount && available && (
             <span className="absolute left-0 top-3 rounded-r-md bg-offer-600 px-2 py-1 text-[12px] font-extrabold text-white">
               {off}% OFF
             </span>
           )}
-          <span className="text-7xl">{m.emoji}</span>
+          <ProductArt subcategory={m.subcategory} form={m.form} size={168} />
         </div>
 
         {/* buy box */}
@@ -179,6 +183,7 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
                     form: m.form,
                     type: m.type,
                     emoji: m.emoji,
+                    subcategory: m.subcategory,
                     price,
                   });
                   toast({ kind: "success", title: `${m.name} added to cart` });

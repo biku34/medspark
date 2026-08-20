@@ -10,6 +10,7 @@ import { useApp } from "@/components/providers";
 import { Badge, EmptyState, Input, SectionTitle, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
 import { SHELF_CATEGORIES, shelfCategory } from "@/lib/shelf";
+import { CategoryArt, paletteFor } from "@/components/art";
 import type { MedicineSearchResult } from "@/lib/types";
 
 const META: Record<
@@ -139,19 +140,21 @@ function CategoryInner({ slug }: { slug: string }) {
                   <button
                     key={c.id}
                     onClick={() => goto(c.id)}
-                    className={`flex flex-col rounded-lg border p-3 text-left transition-transform hover:-translate-y-0.5 ${c.tone}`}
+                    className="group flex flex-col text-left"
                   >
-                    <span className="text-3xl sm:text-4xl">{c.emoji}</span>
-                    <span className="mt-1.5 text-[13px] font-bold leading-tight text-ink-900">
+                    <span
+                      className="flex aspect-[4/3] items-center justify-center rounded-xl transition-transform group-hover:-translate-y-0.5 group-active:scale-95"
+                      style={{ background: paletteFor(c.id).well }}
+                    >
+                      <CategoryArt id={c.id} size={52} />
+                    </span>
+                    <span className="mt-1.5 text-[13px] font-extrabold leading-tight text-ink-900">
                       {c.name}
                     </span>
-                    <span className="mt-0.5 text-[11px] leading-snug text-ink-500">
-                      {c.blurb}
-                    </span>
-                    <span className="mt-2 text-[11px] font-medium text-ink-600">
+                    <span className="nums mt-0.5 text-[11px] font-semibold text-ink-500">
                       {list.length} item{list.length === 1 ? "" : "s"}
                       {list.length > 0 && (
-                        <span className={inStock ? "text-emerald-700" : "text-ink-400"}>
+                        <span className={inStock ? "text-brand-700" : "text-ink-400"}>
                           {" "}
                           · {inStock} in stock
                         </span>
@@ -163,10 +166,12 @@ function CategoryInner({ slug }: { slug: string }) {
             </div>
           )}
 
-          <p className="mt-6 rounded-lg bg-ink-100 p-3.5 text-[12px] text-ink-500">
-            Prescription medicines are not listed here. They follow a separate route —
-            upload your prescription and a registered pharmacist verifies it before any
-            pharmacy can dispense.
+          <p className="mt-6 rounded-xl border border-ink-200 bg-white p-3.5 text-[12px] leading-relaxed text-ink-500">
+            <strong className="font-extrabold text-ink-700">
+              Prescription medicines are not on these shelves.
+            </strong>{" "}
+            They take a different route — upload your prescription and a registered pharmacist
+            verifies it before any pharmacy can dispense.
           </p>
         </CustomerShell>
       );
@@ -183,8 +188,11 @@ function CategoryInner({ slug }: { slug: string }) {
         </button>
 
         <div className="flex items-start gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl">
-            {active.emoji}
+          <span
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: paletteFor(active.id).well }}
+          >
+            <CategoryArt id={active.id} size={40} />
           </span>
           <SectionTitle
             title={active.name}
@@ -213,7 +221,7 @@ function CategoryInner({ slug }: { slug: string }) {
                       : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
                   }
                 >
-                  <span>{c.emoji}</span>
+                  <CategoryArt id={c.id} size={20} className="shrink-0" />
                   <span className="min-w-0 lg:truncate">{c.name}</span>
                   <span className="ml-auto hidden text-xs text-ink-400 lg:inline">
                     {(grouped.get(c.id) ?? []).length}

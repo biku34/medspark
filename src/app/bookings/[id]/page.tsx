@@ -15,6 +15,7 @@ import {
   Star,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ServiceArt } from "@/components/art";
 import { BookingTracker } from "@/components/booking-tracker";
 import { useApp } from "@/components/providers";
 import {
@@ -126,7 +127,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 gap-3">
-            <span className="shrink-0 text-3xl">{meta.emoji}</span>
+            <ServiceArt
+              kind={booking.serviceType === "PHYSIO" ? "physio" : "nursing"}
+              size={40}
+              className="shrink-0"
+            />
             <div className="min-w-0">
               <p className="text-base font-bold text-ink-900 sm:text-lg">
                 {bookingLabel(booking.serviceType, booking.status)}

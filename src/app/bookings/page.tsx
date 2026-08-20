@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CalendarDays, ChevronRight, HeartPulse } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ServiceArt } from "@/components/art";
 import { MiniBookingTracker } from "@/components/booking-tracker";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, EmptyState, SectionTitle, Skeleton, Tabs } from "@/components/ui";
@@ -98,8 +99,11 @@ export default function BookingsPage() {
               <Card key={b.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-2xl">
-                      {meta.emoji}
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-50">
+                      <ServiceArt
+                        kind={b.serviceType === "PHYSIO" ? "physio" : "nursing"}
+                        size={32}
+                      />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-ink-900">{meta.short}</p>

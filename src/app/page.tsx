@@ -3,35 +3,49 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  ChevronRight,
-  Clock3,
-  FileText,
-  RotateCcw,
-  ShieldCheck,
-  Store,
-  Upload,
-} from "lucide-react";
+import { ChevronRight, RotateCcw, ShieldCheck, Store, Truck } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { useApp } from "@/components/providers";
-import { ProductCard, ProductGrid } from "@/components/product-card";
+import { ProductCard } from "@/components/product-card";
 import { MiniTracker } from "@/components/order-tracker";
+import { CategoryArt, ProductArt, ServiceArt, paletteFor } from "@/components/art";
 import { api } from "@/lib/client";
 import { ORDER_LABELS, type MedicineSearchResult, type Order } from "@/lib/types";
 import { SHELF_CATEGORIES } from "@/lib/shelf";
 import { inr } from "@/lib/utils";
 
-/** Big, colourful entry points — the row of round category tiles. */
-const QUICK_TILES = [
-  { href: "/prescriptions/upload", label: "Upload Rx", emoji: "📄", tone: "bg-amber-100" },
-  { href: "/category/otc", label: "Medicines", emoji: "💊", tone: "bg-rose-100" },
-  { href: "/services/physiotherapy", label: "Physio", emoji: "🧑‍⚕️", tone: "bg-brand-100" },
-  { href: "/services/nursing", label: "Nursing", emoji: "👩‍⚕️", tone: "bg-violet-100" },
-  { href: "/care", label: "Care Plan", emoji: "🏥", tone: "bg-sky-100" },
-  { href: "/subscriptions", label: "Repeat", emoji: "🔁", tone: "bg-teal-100" },
-  { href: "/category/wellness?sub=first-aid", label: "First Aid", emoji: "🩹", tone: "bg-red-100" },
-  { href: "/category/wellness?sub=devices", label: "Devices", emoji: "🩺", tone: "bg-indigo-100" },
-];
+/* -------------------------------------------------------------------------- */
+/* Section header — one shape, used by every rail on the page                 */
+/* -------------------------------------------------------------------------- */
+
+function Rail({
+  title,
+  href,
+  linkLabel = "See all",
+  children,
+}: {
+  title: string;
+  href?: string;
+  linkLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-6">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-[19px] font-extrabold text-ink-900 sm:text-[21px]">{title}</h2>
+        {href && (
+          <Link
+            href={href}
+            className="shrink-0 text-[13px] font-extrabold text-brand-700 hover:underline"
+          >
+            {linkLabel}
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function HomePage() {
   const { user, origin, geoQuery, addToCart, toast } = useApp();
@@ -71,86 +85,39 @@ export default function HomePage() {
 
   const bySub = (id: string) => shelf.filter((r) => r.medicine.subcategory === id).slice(0, 10);
   const bestsellers = shelf.filter((r) => r.available).slice(0, 10);
-  const painRelief = bySub("pain-relief");
-  const coldCough = bySub("cold-cough-fever");
 
   return (
     <CustomerShell wide>
-      {/* ------------------------------------------------------------------ */}
-      {/* Delivery promise strip                                              */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-[13px] text-brand-900">
-        <Clock3 size={15} strokeWidth={2.6} className="shrink-0 text-brand-700" />
-        <p className="min-w-0">
-          <strong className="font-extrabold">Medicines in 20 minutes</strong> from verified
-          pharmacies near {origin.locality}
-        </p>
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Quick tiles                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-6 sm:overflow-visible">
-        {QUICK_TILES.map((t) => (
-          <Link key={t.href} href={t.href} className="flex w-16 shrink-0 flex-col items-center gap-1 sm:w-auto">
-            <span
-              className={`flex h-16 w-16 items-center justify-center rounded-full text-3xl sm:h-[72px] sm:w-[72px] ${t.tone}`}
-            >
-              {t.emoji}
-            </span>
-            <span className="text-center text-[11px] font-semibold leading-tight text-ink-700">
-              {t.label}
-            </span>
-          </Link>
-        ))}
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Prescription banner                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      <Link
-        href="/prescriptions/upload"
-        className="mt-3 flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 to-amber-300 p-3.5"
-      >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/70 text-2xl">
-          📄
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-extrabold leading-tight text-amber-950">
-            Have a doctor&apos;s prescription?
-          </span>
-          <span className="block text-[12px] leading-tight text-amber-900">
-            Upload it — a licensed pharmacist verifies before delivery
-          </span>
-        </span>
-        <ChevronRight size={20} className="shrink-0 text-amber-900" />
-      </Link>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Active order strip                                                  */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
+      {/* Live order — the only thing that outranks shopping                  */}
+      {/* ================================================================== */}
       {active.length > 0 && (
-        <div className="mt-3 space-y-2">
+        <div className="mb-4 space-y-2">
           {active.map((o) => (
             <Link
               key={o.id}
               href={`/orders/${o.id}`}
-              className="block rounded-lg border border-brand-200 bg-white p-3"
+              className="block overflow-hidden rounded-xl bg-ink-900 text-white"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-extrabold text-ink-900">
-                    {ORDER_LABELS[o.status]}
-                  </p>
-                  <p className="truncate text-[11px] text-ink-500">
-                    {o.code} · {o.pharmacyName}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-md bg-brand-600 px-2 py-1 text-[11px] font-bold text-white">
-                  {o.etaMinFrom}–{o.etaMinTo} min
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+                  <Truck size={19} strokeWidth={2.4} className="text-brand-300" />
                 </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-extrabold leading-tight">
+                    {ORDER_LABELS[o.status]}
+                  </span>
+                  <span className="block truncate text-[12px] text-white/60">
+                    {o.code} · {o.pharmacyName}
+                  </span>
+                </span>
+                <span className="nums shrink-0 rounded-lg bg-brand-500 px-2.5 py-1.5 text-center text-[13px] font-extrabold leading-none">
+                  {o.etaMinFrom}–{o.etaMinTo}
+                  <span className="block text-[9px] font-bold text-brand-100">MIN</span>
+                </span>
+                <ChevronRight size={18} className="shrink-0 text-white/40" />
               </div>
-              <div className="mt-2">
+              <div className="bg-white/5 px-3.5 pb-3 pt-1">
                 <MiniTracker status={o.status} />
               </div>
             </Link>
@@ -158,27 +125,32 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Shop by category                                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-5">
-        <div className="mb-2.5 flex items-end justify-between">
-          <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
-            Shop by category
+      {/* ================================================================== */}
+      {/* Shop by category — image-forward, no borders, tight                 */}
+      {/* ================================================================== */}
+      <section>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-[19px] font-extrabold text-ink-900 sm:text-[21px]">
+            What do you need?
           </h2>
-          <Link href="/category/wellness" className="text-[13px] font-bold text-brand-700">
-            See all
+          <Link
+            href="/category/wellness"
+            className="shrink-0 text-[13px] font-extrabold text-brand-700 hover:underline"
+          >
+            All categories
           </Link>
         </div>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+
+        <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-6 lg:grid-cols-8">
           {SHELF_CATEGORIES.slice(0, 8).map((c) => (
-            <Link
-              key={c.id}
-              href={`/category/wellness?sub=${c.id}`}
-              className={`flex flex-col items-center gap-1 rounded-lg border p-2 ${c.tone}`}
-            >
-              <span className="text-2xl sm:text-3xl">{c.emoji}</span>
-              <span className="text-center text-[10px] font-semibold leading-tight text-ink-700">
+            <Link key={c.id} href={`/category/wellness?sub=${c.id}`} className="group">
+              <span
+                className="flex aspect-square items-center justify-center rounded-xl transition-transform group-active:scale-95"
+                style={{ background: paletteFor(c.id).well }}
+              >
+                <CategoryArt id={c.id} size={46} />
+              </span>
+              <span className="mt-1.5 block text-center text-[11px] font-semibold leading-tight text-ink-700">
                 {c.name}
               </span>
             </Link>
@@ -186,186 +158,206 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Product rails                                                       */}
-      {/* ------------------------------------------------------------------ */}
-      {[
-        { title: "Bestsellers near you", items: bestsellers, href: "/category/wellness" },
-        { title: "Pain relief", items: painRelief, href: "/category/wellness?sub=pain-relief" },
-        {
-          title: "Cold, cough & fever",
-          items: coldCough,
-          href: "/category/wellness?sub=cold-cough-fever",
-        },
-      ].map((rail) => (
-        <section key={rail.title} className="mt-5">
-          <div className="mb-2.5 flex items-end justify-between">
-            <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
-              {rail.title}
+      {/* ================================================================== */}
+      {/* The two things a chemist downstairs cannot do                       */}
+      {/* ================================================================== */}
+      <section className="mt-6 grid gap-2.5 sm:grid-cols-2">
+        {/* prescription upload */}
+        <Link
+          href="/prescriptions/upload"
+          className="relative flex items-center gap-3 overflow-hidden rounded-2xl bg-rx-50 p-4 ring-1 ring-rx-200 transition-colors hover:bg-rx-100"
+        >
+          <ServiceArt kind="rx" size={54} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[16px] font-extrabold leading-tight text-rx-800">
+              Upload a prescription
+            </span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-rx-700/80">
+              A licensed pharmacist checks it, calls you, then releases the order
+            </span>
+          </span>
+          <ChevronRight size={20} strokeWidth={2.6} className="shrink-0 text-rx-500" />
+        </Link>
+
+        {/* care plan */}
+        <Link
+          href="/care"
+          className="relative flex items-center gap-3 overflow-hidden rounded-2xl bg-care-50 p-4 ring-1 ring-care-200 transition-colors hover:bg-care-100"
+        >
+          <ServiceArt kind="care" size={54} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[16px] font-extrabold leading-tight text-care-800">
+                Send us your reports
+              </span>
+              <span className="rounded bg-care-600 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white">
+                New
+              </span>
+            </span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-care-700/80">
+              Discharge summary or lab report — we plan the medicines and visits
+            </span>
+          </span>
+          <ChevronRight size={20} strokeWidth={2.6} className="shrink-0 text-care-500" />
+        </Link>
+      </section>
+
+      {/* ================================================================== */}
+      {/* Bestsellers                                                         */}
+      {/* ================================================================== */}
+      <Rail title={`Popular in ${origin.locality}`} href="/category/wellness">
+        {loading ? (
+          <div className="rail">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-64 w-[150px] shrink-0 animate-pulse rounded-xl bg-ink-100" />
+            ))}
+          </div>
+        ) : (
+          <div className="rail">
+            {bestsellers.map((r) => (
+              <div key={r.medicine.id} className="w-[150px] shrink-0 sm:w-[168px]">
+                <ProductCard result={r} />
+              </div>
+            ))}
+          </div>
+        )}
+      </Rail>
+
+      {/* ================================================================== */}
+      {/* Repeat delivery — a full-width band, not another card               */}
+      {/* ================================================================== */}
+      <section className="bleed mt-7 bg-brand-800 py-5 text-white sm:rounded-2xl sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-brand-200">
+              Repeat delivery
+            </p>
+            <h2 className="mt-2 text-[22px] font-extrabold leading-tight sm:text-[26px]">
+              Stop re-ordering the same
+              <br className="hidden sm:block" /> tablets every month
             </h2>
-            <Link href={rail.href} className="text-[13px] font-bold text-brand-700">
-              See all
+            <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-white/70">
+              Pick a day, pick your pharmacy, and it arrives on its own — 5% off every time. Skip a
+              month or cancel whenever you like.
+            </p>
+            <Link
+              href="/subscriptions"
+              className="mt-3.5 inline-flex h-11 items-center gap-1.5 rounded-xl bg-white px-4 text-[14px] font-extrabold text-brand-800 hover:bg-brand-50"
+            >
+              Set up repeat delivery
+              <ChevronRight size={17} strokeWidth={3} />
             </Link>
           </div>
+          <div className="flex shrink-0 items-center justify-center">
+            <span className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/10 sm:h-28 sm:w-28">
+              <ServiceArt kind="repeat" size={72} />
+            </span>
+          </div>
+        </div>
+      </section>
 
-          {loading ? (
-            <div className="no-scrollbar flex gap-2.5 overflow-x-auto">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-64 w-40 shrink-0 animate-pulse rounded-lg bg-ink-100"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="no-scrollbar -mx-3 flex gap-2.5 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-              {rail.items.map((r) => (
-                <div key={r.medicine.id} className="w-[150px] shrink-0 sm:w-[168px]">
-                  <ProductCard result={r} />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
+      {/* ================================================================== */}
+      {/* More aisles                                                         */}
+      {/* ================================================================== */}
+      {[
+        { id: "pain-relief", title: "Pain relief" },
+        { id: "cold-cough-fever", title: "Cold, cough & fever" },
+        { id: "devices", title: "Health devices" },
+      ].map((rail) => {
+        const items = bySub(rail.id);
+        if (!loading && items.length === 0) return null;
+        return (
+          <Rail key={rail.id} title={rail.title} href={`/category/wellness?sub=${rail.id}`}>
+            {loading ? (
+              <div className="rail">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-64 w-[150px] shrink-0 animate-pulse rounded-xl bg-ink-100"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rail">
+                {items.map((r) => (
+                  <div key={r.medicine.id} className="w-[150px] shrink-0 sm:w-[168px]">
+                    <ProductCard result={r} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Rail>
+        );
+      })}
 
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
       {/* Home healthcare                                                     */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-6">
-        <h2 className="mb-1 text-[17px] font-extrabold tracking-tight text-ink-900">
-          Healthcare at your doorstep
-        </h2>
-        <p className="mb-2.5 text-[13px] text-ink-500">
-          Verified professionals who come to you · book 1 day ahead
-        </p>
+      {/* ================================================================== */}
+      <Rail title="Care at home" href="/bookings" linkLabel="My visits">
         <div className="grid gap-2.5 sm:grid-cols-2">
           {[
             {
               href: "/services/physiotherapy",
-              emoji: "🧑‍⚕️",
+              kind: "physio" as const,
               title: "Physiotherapy",
               sub: "Post-op, back, knee & stroke rehab",
               rate: 500,
-              bg: "from-brand-600 to-brand-500",
             },
             {
               href: "/services/nursing",
-              emoji: "👩‍⚕️",
+              kind: "nursing" as const,
               title: "Nursing at home",
               sub: "Elderly care, wound care, vitals",
               rate: 300,
-              bg: "from-violet-600 to-violet-500",
             },
           ].map((s) => (
             <Link
               key={s.href}
               href={s.href}
-              className={`flex items-center gap-3 rounded-xl bg-gradient-to-r p-4 text-white ${s.bg}`}
+              className="tile flex items-center gap-3 p-3 hover:tile-hover"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/20 text-2xl">
-                {s.emoji}
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-ink-50">
+                <ServiceArt kind={s.kind} size={40} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-extrabold leading-tight">{s.title}</span>
-                <span className="block text-[12px] leading-snug text-white/85">{s.sub}</span>
-                <span className="mt-1 block text-[12px] font-bold">
+                <span className="block text-[15px] font-extrabold leading-tight text-ink-900">
+                  {s.title}
+                </span>
+                <span className="block text-[12px] leading-snug text-ink-500">{s.sub}</span>
+                <span className="nums mt-1 block text-[12px] font-extrabold text-brand-700">
                   From {inr(s.rate)}/hour
                 </span>
               </span>
-              <ChevronRight size={20} className="shrink-0" />
+              <ChevronRight size={18} className="shrink-0 text-ink-400" />
             </Link>
           ))}
         </div>
-      </section>
+      </Rail>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Add-on services                                                     */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-6">
-        <h2 className="mb-1 text-[17px] font-extrabold tracking-tight text-ink-900">
-          More than delivery
-        </h2>
-        <p className="mb-2.5 text-[13px] text-ink-500">
-          Two things a chemist down the road cannot do for you
-        </p>
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          <Link
-            href="/care"
-            className="group flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition-colors hover:border-brand-400"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-2xl">
-              🏥
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-extrabold leading-tight text-ink-900">
-                Send us your reports
-              </span>
-              <span className="mt-0.5 block text-[12px] leading-snug text-ink-600">
-                Discharge summary, lab report or prescription. A pharmacist reads it and plans the
-                medicines, nurse and physio visits for you to approve.
-              </span>
-              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-extrabold text-brand-700">
-                Start a care plan <ChevronRight size={13} />
-              </span>
-            </span>
-          </Link>
-
-          <Link
-            href="/subscriptions"
-            className="group flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition-colors hover:border-brand-400"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-2xl">
-              🔁
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[15px] font-extrabold leading-tight text-ink-900">
-                  Repeat delivery
-                </span>
-                <span className="rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
-                  Save 5%
-                </span>
-              </span>
-              <span className="mt-0.5 block text-[12px] leading-snug text-ink-600">
-                Monthly tablets, supplements or pads — delivered on a schedule you set. Skip, pause
-                or cancel any time.
-              </span>
-              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-extrabold text-brand-700">
-                Set one up <ChevronRight size={13} />
-              </span>
-            </span>
-          </Link>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
       {/* Reorder                                                             */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
       {user && past.length > 0 && (
-        <section className="mt-6">
-          <div className="mb-2.5 flex items-end justify-between">
-            <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
-              Order again
-            </h2>
-            <Link href="/orders" className="text-[13px] font-bold text-brand-700">
-              All orders
-            </Link>
-          </div>
-          <div className="no-scrollbar -mx-3 flex gap-2.5 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+        <Rail title="Buy it again" href="/orders" linkLabel="All orders">
+          <div className="rail">
             {past.slice(0, 6).map((o) => (
-              <div
-                key={o.id}
-                className="tile flex w-[190px] shrink-0 flex-col justify-between p-3"
-              >
-                <div>
-                  <p className="clamp-2 text-[13px] font-semibold text-ink-800">
-                    {o.items.map((i) => i.name).join(", ")}
-                  </p>
-                  <p className="mt-1 text-[11px] text-ink-500">
-                    {o.pharmacyName} · {inr(o.total)}
-                  </p>
+              <div key={o.id} className="tile flex w-[210px] shrink-0 flex-col p-3">
+                <div className="flex -space-x-2">
+                  {o.items.slice(0, 3).map((i) => (
+                    <span
+                      key={i.medicineId}
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border-2 border-white bg-ink-50"
+                    >
+                      <ProductArt subcategory="" form={i.form} size={32} />
+                    </span>
+                  ))}
                 </div>
+                <p className="clamp-2 mt-2 text-[13px] font-semibold leading-snug text-ink-800">
+                  {o.items.map((i) => i.name).join(", ")}
+                </p>
+                <p className="nums mt-0.5 text-[11px] text-ink-500">
+                  {o.pharmacyName} · {inr(o.total)}
+                </p>
                 <button
                   onClick={() => {
                     if (o.items.some((i) => i.type === "RX")) {
@@ -393,48 +385,61 @@ export default function HomePage() {
                     );
                     toast({ kind: "success", title: "Added to cart" });
                   }}
-                  className="mt-2 flex h-8 items-center justify-center gap-1 rounded-lg border border-brand-600 bg-brand-50 text-[12px] font-bold uppercase text-brand-700"
+                  className="mt-auto flex h-9 items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-brand-600 bg-white pt-0 text-[12px] font-extrabold uppercase text-brand-700 hover:bg-brand-50"
                 >
                   <RotateCcw size={12} strokeWidth={3} /> Reorder
                 </button>
               </div>
             ))}
           </div>
-        </section>
+        </Rail>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Trust strip                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-6 grid grid-cols-3 gap-2">
-        {[
-          { icon: Store, title: "You pick the pharmacy", sub: "Never auto-assigned" },
-          { icon: ShieldCheck, title: "Pharmacist verified", sub: "Every prescription" },
-          { icon: FileText, title: "Licensed partners", sub: "Verified drug licence" },
-        ].map(({ icon: Icon, title, sub }) => (
-          <div key={title} className="rounded-lg border border-ink-200 bg-white p-3 text-center">
-            <Icon size={18} className="mx-auto text-brand-600" />
-            <p className="mt-1 text-[11px] font-bold leading-tight text-ink-800">{title}</p>
-            <p className="text-[10px] leading-tight text-ink-500">{sub}</p>
-          </div>
-        ))}
+      {/* ================================================================== */}
+      {/* Why this is not just another store                                  */}
+      {/* ================================================================== */}
+      <section className="mt-7 rounded-2xl border border-ink-200 bg-white p-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: Store,
+              title: "You choose the shop",
+              sub: "We show you every pharmacy near you with prices and stock. We never pick one for you.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "A pharmacist actually calls",
+              sub: "Every prescription is read and verified over a phone call before anything is dispensed.",
+            },
+            {
+              icon: Truck,
+              title: "From a shop, not a warehouse",
+              sub: "Your order comes from a licensed chemist a few streets away — that is why it is fast.",
+            },
+          ].map(({ icon: Icon, title, sub }) => (
+            <div key={title} className="flex gap-2.5">
+              <Icon size={18} strokeWidth={2.4} className="mt-0.5 shrink-0 text-brand-600" />
+              <div className="min-w-0">
+                <p className="text-[13px] font-extrabold leading-tight text-ink-900">{title}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500">{sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {!user && (
         <Link
           href="/login"
-          className="mt-4 flex items-center gap-3 rounded-lg border border-ink-200 bg-white p-3.5"
+          className="mt-3 flex items-center gap-3 rounded-2xl bg-ink-900 p-4 text-white"
         >
-          <Upload size={18} className="shrink-0 text-brand-600" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-bold text-ink-900">
-              Login to order and track deliveries
-            </span>
-            <span className="block text-[11px] text-ink-500">
-              customer@dawaquick.app · demo1234
+            <span className="block text-[15px] font-extrabold">Sign in to order</span>
+            <span className="block text-[12px] text-white/60">
+              Saved addresses, order tracking, prescriptions and repeat deliveries
             </span>
           </span>
-          <ChevronRight size={18} className="shrink-0 text-ink-400" />
+          <ChevronRight size={20} className="shrink-0 text-white/50" />
         </Link>
       )}
     </CustomerShell>

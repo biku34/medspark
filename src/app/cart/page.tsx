@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
+import { ProductArt, paletteFor } from "@/components/art";
 import { useApp } from "@/components/providers";
 import { Button, EmptyState } from "@/components/ui";
 import { inr } from "@/lib/utils";
@@ -51,9 +52,10 @@ export default function CartPage() {
           <div key={l.medicineId} className="flex items-center gap-3 p-3">
             <Link
               href={`/medicine/${l.medicineId}`}
-              className="img-well flex h-14 w-14 shrink-0 items-center justify-center"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: paletteFor(l.subcategory ?? "").well }}
             >
-              <span className="text-2xl">{l.emoji}</span>
+              <ProductArt subcategory={l.subcategory ?? ""} form={l.form} size={44} />
             </Link>
 
             <div className="min-w-0 flex-1">

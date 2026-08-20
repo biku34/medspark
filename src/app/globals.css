@@ -3,41 +3,67 @@
 /* --------------------------------------------------------------------------
    DawaQuick design tokens
 
-   Quick-commerce, not SaaS: saturated brand green, warm neutral greys, tight
-   radii, hairline borders instead of soft shadows, and dense spacing. The
-   palette is deliberately commercial — price, savings and delivery time are
-   the loudest things on the screen.
+   The app is a pharmacy that moves at quick-commerce speed, so the palette has
+   to do two jobs that usually fight: feel urgent and feel safe.
+
+   Green carries speed and "go", but a yellow-green reads as groceries, so ours
+   is pulled deep and slightly cool — closer to a hospital corridor than a
+   vegetable aisle. Amber is reserved almost entirely for ℞: anything the colour
+   of that amber needs a pharmacist. Blue is money (discounts, savings), violet
+   is care services. Nothing else gets to be loud.
    -------------------------------------------------------------------------- */
 
 @theme {
-  /* Primary — the "ADD to cart" / price green */
-  --color-brand-50: #eaf7ec;
-  --color-brand-100: #cfeed6;
-  --color-brand-200: #a3dcb0;
-  --color-brand-300: #6ec483;
-  --color-brand-400: #35a854;
-  --color-brand-500: #16912f;
-  --color-brand-600: #0c831f;
-  --color-brand-700: #0a6b19;
-  --color-brand-800: #085614;
-  --color-brand-900: #06430f;
+  /* Primary — delivery, "ADD", confirmation */
+  --color-brand-50: #e8f6ef;
+  --color-brand-100: #c7ead9;
+  --color-brand-200: #93d6b8;
+  --color-brand-300: #55bd93;
+  --color-brand-400: #22a373;
+  --color-brand-500: #0f8c5f;
+  --color-brand-600: #07784f;
+  --color-brand-700: #056240;
+  --color-brand-800: #044d33;
+  --color-brand-900: #033a27;
 
-  /* Discount / offer accent — the blue tag on product tiles */
-  --color-offer-500: #3b73f5;
-  --color-offer-600: #256fef;
-  --color-offer-700: #1b58c4;
+  /* ℞ — prescription, verification, "a pharmacist must look at this" */
+  --color-rx-50: #fff6e5;
+  --color-rx-100: #ffe9c2;
+  --color-rx-200: #ffd68a;
+  --color-rx-300: #fbbd4c;
+  --color-rx-400: #f0a32b;
+  --color-rx-500: #dc8b12;
+  --color-rx-600: #b96f09;
+  --color-rx-700: #92560a;
+  --color-rx-800: #74440c;
 
-  /* Warm neutrals. Quick-commerce greys are warm, never blue-tinted. */
-  --color-ink-50: #fafafa;
-  --color-ink-100: #f3f3f3;
-  --color-ink-200: #e6e6e6;
-  --color-ink-300: #d4d4d4;
-  --color-ink-400: #a3a3a3;
-  --color-ink-500: #7a7a7a;
-  --color-ink-600: #545454;
-  --color-ink-700: #3d3d3d;
-  --color-ink-800: #262626;
-  --color-ink-900: #131313;
+  /* Care services — home visits, care plans */
+  --color-care-50: #eef2ff;
+  --color-care-100: #dbe3ff;
+  --color-care-200: #bccbff;
+  --color-care-300: #93a9fa;
+  --color-care-400: #6f88f3;
+  --color-care-500: #4c7df0;
+  --color-care-600: #3560d8;
+  --color-care-700: #2a4bb0;
+  --color-care-800: #24408e;
+
+  /* Money — discounts, savings, offers */
+  --color-offer-500: #1f6feb;
+  --color-offer-600: #1558c7;
+  --color-offer-700: #10459d;
+
+  /* Neutrals. A touch cool so white surfaces read clean, not creamy. */
+  --color-ink-50: #f8f9fa;
+  --color-ink-100: #f0f1f3;
+  --color-ink-200: #e3e5e9;
+  --color-ink-300: #ced1d8;
+  --color-ink-400: #9aa0ab;
+  --color-ink-500: #6f7684;
+  --color-ink-600: #4c525e;
+  --color-ink-700: #363b45;
+  --color-ink-800: #21252c;
+  --color-ink-900: #0f1319;
 
   --color-accent-500: #ff6b35;
   --color-accent-600: #f2541b;
@@ -45,11 +71,11 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
-  --radius-card: 0.75rem;
+  --radius-card: 0.875rem;
 }
 
 :root {
-  --page-bg: #f7f7f7;
+  --page-bg: #f4f5f7;
   color-scheme: light;
 }
 
@@ -63,7 +89,14 @@ body {
   color: var(--color-ink-800);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.011em;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings carry the app's voice: heavy, tight, never timid. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.022em;
 }
 
 /* Seniors and low-vision users are core to the audience, so nothing
@@ -77,7 +110,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Primitives
+   Surfaces
    -------------------------------------------------------------------------- */
 
 @utility card {
@@ -92,22 +125,74 @@ body {
   border: 1px solid var(--color-ink-200);
 }
 
-/* The product tile: hairline border, no shadow until hover. */
+/* Product tile: hairline border, lift only on hover. */
 @utility tile {
-  border-radius: 0.625rem;
+  border-radius: 0.75rem;
   background: #fff;
   border: 1px solid var(--color-ink-200);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
 }
 @utility tile-hover {
   border-color: var(--color-ink-300);
-  box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.18);
+  box-shadow: 0 6px 18px -8px rgb(15 19 25 / 0.22);
 }
 
-/* Light well behind a product image — the grey square every grocery app uses */
+/* Well behind a pack shot. */
 @utility img-well {
-  background: linear-gradient(180deg, #fbfbfb 0%, #f1f1f1 100%);
-  border-radius: 0.5rem;
+  background: linear-gradient(168deg, #fcfcfd 0%, #eef0f3 100%);
+  border-radius: 0.625rem;
+}
+
+/**
+ * Full-bleed colour band.
+ *
+ * Sections that own a colour should run edge to edge on a phone — boxing them
+ * inside a rounded card is what makes a page read as a stack of widgets rather
+ * than an app.
+ */
+@utility bleed {
+  margin-left: calc(var(--spacing) * -3);
+  margin-right: calc(var(--spacing) * -3);
+  padding-left: calc(var(--spacing) * 3);
+  padding-right: calc(var(--spacing) * 3);
+}
+@media (min-width: 640px) {
+  .bleed {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* Row that scrolls sideways off the edge of the screen, grocery-app style. */
+@utility rail {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  margin-left: calc(var(--spacing) * -3);
+  margin-right: calc(var(--spacing) * -3);
+  padding-left: calc(var(--spacing) * 3);
+  padding-right: calc(var(--spacing) * 3);
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail > * {
+  scroll-snap-align: start;
+}
+@media (min-width: 640px) {
+  .rail {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 *:focus-visible {
@@ -124,12 +209,22 @@ body {
   display: none;
 }
 
-/* Two-line product names, the way every catalogue does it. */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Tabular figures wherever a number is compared to another number. */
+.nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* --------------------------------------------------------------------------
@@ -198,6 +293,22 @@ body {
 .route-dash {
   stroke-dasharray: 8 8;
   animation: dawaquick-dash 1.1s linear infinite;
+}
+
+/* The delivery clock ticking in the header. */
+@keyframes dawaquick-tick {
+  0%,
+  92%,
+  100% {
+    transform: rotate(0deg);
+  }
+  96% {
+    transform: rotate(14deg);
+  }
+}
+.tick {
+  animation: dawaquick-tick 3.4s ease-in-out infinite;
+  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

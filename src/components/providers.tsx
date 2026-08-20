@@ -23,6 +23,8 @@ export interface CartLine {
   form: string;
   type: MedicineType;
   emoji: string;
+  /** Shelf category — drives the pack artwork in the cart. */
+  subcategory?: string;
   price: number;
   qty: number;
 }

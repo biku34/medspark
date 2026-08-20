@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { CustomerShell } from "@/components/customer-shell";
+import { ServiceArt } from "@/components/art";
 import { CarePlanBadge, CarePlanProgress, DocumentTile, MedicineLine } from "@/components/care-ui";
 import { useApp } from "@/components/providers";
 import {
@@ -193,7 +194,7 @@ export default function CarePlanDetailPage() {
                 "Care plan request"}
             </p>
           </div>
-          <CarePlanBadge status={plan.status} />
+          <CarePlanBadge status={plan.status} full />
         </div>
 
         <div className="mt-4">
@@ -203,11 +204,11 @@ export default function CarePlanDetailPage() {
 
       {/* --------------------- the ask, when it's your turn ---------------- */}
       {awaitingYou && (
-        <Card className="mt-3 border-amber-300 bg-amber-50">
-          <p className="flex items-center gap-1.5 text-[14px] font-extrabold text-amber-900">
+        <Card className="mt-3 border-rx-300 bg-rx-50">
+          <p className="flex items-center gap-1.5 text-[14px] font-extrabold text-rx-800">
             <CalendarCheck size={16} /> Your care plan is ready
           </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-amber-800">
+          <p className="mt-1 text-[12px] leading-relaxed text-rx-800">
             Nothing has been ordered or booked yet. Read the plan below, then approve it — you
             choose the pharmacy at that point.
           </p>
@@ -221,11 +222,11 @@ export default function CarePlanDetailPage() {
       )}
 
       {plan.status === "CHANGES_REQUESTED" && plan.changeRequest && (
-        <Card className="mt-3 border-amber-300 bg-amber-50">
-          <p className="text-[13px] font-extrabold text-amber-900">
+        <Card className="mt-3 border-rx-300 bg-rx-50">
+          <p className="text-[13px] font-extrabold text-rx-800">
             The care team is revising your plan
           </p>
-          <p className="mt-1 text-[12px] italic text-amber-800">“{plan.changeRequest}”</p>
+          <p className="mt-1 text-[12px] italic text-rx-800">“{plan.changeRequest}”</p>
         </Card>
       )}
 
@@ -239,7 +240,7 @@ export default function CarePlanDetailPage() {
               </p>
               <p className="mt-1.5 text-[14px] leading-relaxed text-ink-800">{plan.summary}</p>
               {plan.safetyNotes && (
-                <p className="mt-2.5 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[12px] leading-relaxed text-amber-900">
+                <p className="mt-2.5 flex gap-2 rounded-lg border border-rx-200 bg-rx-50 p-2.5 text-[12px] leading-relaxed text-rx-800">
                   <TriangleAlert size={15} className="mt-px shrink-0" />
                   <span>{plan.safetyNotes}</span>
                 </p>
@@ -288,9 +289,14 @@ export default function CarePlanDetailPage() {
                   return (
                     <li key={v.id} className="rounded-lg border border-ink-200 p-2.5">
                       <div className="flex flex-wrap items-start justify-between gap-2">
+                        <ServiceArt
+                          kind={v.serviceType === "PHYSIO" ? "physio" : "nursing"}
+                          size={34}
+                          className="shrink-0"
+                        />
                         <div className="min-w-0">
                           <p className="text-[14px] font-bold text-ink-900">
-                            {meta.emoji} {meta.short}
+                            {meta.short}
                           </p>
                           <p className="text-[12px] text-ink-600">
                             {v.reason || v.assistanceTypes.join(", ") || "Home visit"}

@@ -188,13 +188,13 @@ export default function SubscriptionDetailPage() {
           <div
             className={clsx(
               "mt-3 rounded-lg px-3 py-2.5",
-              held ? "bg-amber-100" : "bg-brand-50",
+              held ? "bg-rx-100" : "bg-brand-50",
             )}
           >
             <p className="text-[10px] font-extrabold uppercase tracking-wide text-ink-500">
               {held ? "On hold" : sub.skipNext ? "Skipping this cycle" : "Next delivery"}
             </p>
-            <p className={clsx("text-[17px] font-extrabold", held ? "text-amber-800" : "text-brand-800")}>
+            <p className={clsx("text-[17px] font-extrabold", held ? "text-rx-800" : "text-brand-800")}>
               {nextDeliveryLabel(sub)}
               {!held && (
                 <span className="ml-1.5 text-[13px] font-semibold text-ink-500">
@@ -206,7 +206,7 @@ export default function SubscriptionDetailPage() {
         )}
 
         {held && cover?.reason && (
-          <p className="mt-2 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[12px] leading-relaxed text-amber-900">
+          <p className="mt-2 flex gap-2 rounded-lg border border-rx-200 bg-rx-50 p-2.5 text-[12px] leading-relaxed text-rx-800">
             <TriangleAlert size={15} className="mt-px shrink-0" />
             <span>
               {cover.reason} Upload a current prescription and we'll resume from the next cycle.

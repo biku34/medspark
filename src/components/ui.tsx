@@ -24,15 +24,15 @@ const VARIANTS: Record<Variant, string> = {
   primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
   secondary: "bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200",
   ghost: "bg-transparent text-ink-600 hover:bg-ink-100",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+  danger: "bg-white text-red-700 border-[1.5px] border-red-300 hover:bg-red-50",
   success: "bg-brand-600 text-white hover:bg-brand-700",
-  outline: "bg-white text-ink-700 border border-ink-300 hover:border-ink-400 hover:bg-ink-50",
+  outline: "bg-white text-ink-700 border-[1.5px] border-ink-300 hover:border-ink-400 hover:bg-ink-50",
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "text-[13px] px-3 py-1.5 gap-1.5 rounded-md font-semibold",
-  md: "text-sm px-4 py-2 gap-1.5 rounded-lg font-semibold",
-  lg: "text-[15px] px-5 py-3 gap-2 rounded-lg font-bold",
+  sm: "text-[13px] h-9 px-3 gap-1.5 rounded-lg font-bold",
+  md: "text-[14px] h-11 px-4 gap-1.5 rounded-xl font-extrabold",
+  lg: "text-[15px] h-12 px-5 gap-2 rounded-xl font-extrabold",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -53,7 +53,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
       disabled={rest.disabled || loading}
       className={clsx(
-        "inline-flex items-center justify-center font-medium transition-colors",
+        "inline-flex items-center justify-center whitespace-nowrap transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         VARIANTS[variant],
         SIZES[size],
@@ -89,7 +89,7 @@ export function LinkButton({
       href={href}
       data-tap
       className={clsx(
-        "inline-flex items-center justify-center font-medium transition-colors",
+        "inline-flex items-center justify-center whitespace-nowrap transition-colors",
         VARIANTS[variant],
         SIZES[size],
         full && "w-full",
@@ -130,9 +130,7 @@ export function SectionTitle({
   return (
     <div className="mb-3 flex items-end justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900 sm:text-xl">
-          {title}
-        </h2>
+        <h2 className="text-[19px] font-extrabold text-ink-900 sm:text-[21px]">{title}</h2>
         {subtitle && <p className="mt-0.5 text-[13px] text-ink-500">{subtitle}</p>}
       </div>
       {action}
@@ -147,13 +145,13 @@ export function SectionTitle({
 type Tone = "brand" | "green" | "amber" | "red" | "blue" | "slate" | "purple";
 
 const TONES: Record<Tone, string> = {
-  brand: "bg-brand-50 text-brand-700 border-brand-200",
-  green: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  amber: "bg-amber-50 text-amber-800 border-amber-200",
+  brand: "bg-brand-50 text-brand-800 border-brand-200",
+  green: "bg-brand-100 text-brand-800 border-brand-200",
+  amber: "bg-rx-100 text-rx-800 border-rx-200",
   red: "bg-red-50 text-red-700 border-red-200",
-  blue: "bg-sky-50 text-sky-700 border-sky-200",
+  blue: "bg-care-100 text-care-800 border-care-200",
   slate: "bg-ink-100 text-ink-600 border-ink-200",
-  purple: "bg-violet-50 text-violet-700 border-violet-200",
+  purple: "bg-care-100 text-care-800 border-care-200",
 };
 
 export function Badge({
@@ -170,7 +168,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap",
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-extrabold whitespace-nowrap",
         TONES[tone],
         className,
       )}
