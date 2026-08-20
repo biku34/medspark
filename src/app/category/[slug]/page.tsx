@@ -21,7 +21,7 @@ const META: Record<
     title: "OTC Medicines",
     subtitle: "Over-the-counter medicines you can order without a prescription.",
     icon: Pill,
-    tone: "bg-emerald-50 text-emerald-700",
+    tone: "bg-ok-50 text-ok-700",
   },
   prescription: {
     title: "Prescription Medicines",

@@ -119,7 +119,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       <Card
         className={
           booking.status === "COMPLETED"
-            ? "border-emerald-200 bg-emerald-50/60"
+            ? "border-ok-200 bg-ok-50/60"
             : closed
               ? "border-red-200 bg-red-50/60"
               : "border-brand-200 bg-brand-50/60"

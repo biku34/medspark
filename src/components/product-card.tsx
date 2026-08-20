@@ -102,7 +102,7 @@ export function ProductCard({ result }: { result: MedicineSearchResult }) {
           />
 
           {hasDiscount && available && (
-            <span className="nums absolute left-1 top-1 rounded-md bg-offer-600 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow-sm">
+            <span className="nums absolute left-1 top-1 rounded-md bg-ok-600 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow-sm">
               {off}% OFF
             </span>
           )}

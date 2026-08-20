@@ -11,7 +11,7 @@ type MetricTone = "neutral" | "green" | "amber" | "red" | "blue" | "violet";
 
 const METRIC_TONES: Record<MetricTone, string> = {
   neutral: "text-ink-900",
-  green: "text-brand-700",
+  green: "text-ok-700",
   amber: "text-amber-600",
   red: "text-red-600",
   blue: "text-sky-700",
@@ -66,7 +66,7 @@ export function MetricRow({ children }: { children: ReactNode }) {
 type PillTone = "green" | "amber" | "red" | "blue" | "grey" | "violet";
 
 const PILL_TONES: Record<PillTone, string> = {
-  green: "bg-brand-600 text-white",
+  green: "bg-ok-600 text-white",
   amber: "bg-amber-500 text-white",
   red: "bg-red-600 text-white",
   blue: "bg-sky-600 text-white",
@@ -180,7 +180,7 @@ export function Ticket({
   accent?: "green" | "amber" | "red" | "blue" | "grey";
 }) {
   const bar = {
-    green: "before:bg-brand-600",
+    green: "before:bg-ok-600",
     amber: "before:bg-amber-500",
     red: "before:bg-red-500",
     blue: "before:bg-sky-500",

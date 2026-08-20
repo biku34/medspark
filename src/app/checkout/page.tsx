@@ -209,11 +209,11 @@ function CheckoutInner() {
       <SectionTitle title={isRx ? "Prescription Order Summary" : "Order Summary"} />
 
       {isRx && (
-        <Card className="mb-3 border-emerald-200 bg-emerald-50/60">
+        <Card className="mb-3 border-ok-200 bg-ok-50/60">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-emerald-900">Prescription status</p>
-              <p className="text-xs text-emerald-800">
+              <p className="text-sm font-semibold text-ok-900">Prescription status</p>
+              <p className="text-xs text-ok-800">
                 {prescription
                   ? `${prescription.ref} · verified by ${prescription.verifiedByName ?? "pharmacist"}`
                   : "No verified prescription attached"}

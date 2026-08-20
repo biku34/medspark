@@ -102,7 +102,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       <Card
         className={
           order.status === "DELIVERED"
-            ? "border-emerald-200 bg-emerald-50/60"
+            ? "border-ok-200 bg-ok-50/60"
             : closed
               ? "border-red-200 bg-red-50/60"
               : "border-brand-200 bg-brand-50/60"
@@ -112,7 +112,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
           <div>
             <p className="flex items-center gap-2 text-lg font-bold text-ink-900">
               {order.status === "DELIVERED" ? (
-                <CheckCircle2 size={20} className="text-emerald-600" />
+                <CheckCircle2 size={20} className="text-ok-600" />
               ) : closed ? (
                 <XCircle size={20} className="text-red-600" />
               ) : (
@@ -129,7 +129,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
               </p>
             )}
             {order.status === "DELIVERED" && (
-              <p className="mt-1 text-sm text-emerald-800">
+              <p className="mt-1 text-sm text-ok-800">
                 Delivered {dateTime(order.history.find((h) => h.status === "DELIVERED")!.at)}
               </p>
             )}
@@ -247,7 +247,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
         {order.prescriptionId && (
           <Link
             href={`/prescriptions/${order.prescriptionId}`}
-            className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
+            className="mt-3 flex items-center gap-2 rounded-xl bg-ok-50 p-3 text-sm font-medium text-ok-800"
           >
             <CheckCircle2 size={16} /> Prescription verified — view record
           </Link>

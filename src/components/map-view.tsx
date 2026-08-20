@@ -52,22 +52,22 @@ export function MapView({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink-200 bg-[#eaf1f0]">
+    <div className="overflow-hidden rounded-2xl border border-ink-200 bg-[#eef1f6]">
       <svg viewBox="0 0 360 200" style={{ height }} className="w-full" role="img"
         aria-label={`Route from ${pharmacyName} to ${customerLocality}, ${distanceKm} km`}>
         <defs>
           <pattern id="ms-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M24 0H0V24" fill="none" stroke="#d7e3e1" strokeWidth="1" />
+            <path d="M24 0H0V24" fill="none" stroke="#dde3ec" strokeWidth="1" />
           </pattern>
         </defs>
-        <rect width="360" height="200" fill="#eef4f3" />
+        <rect width="360" height="200" fill="#eff2f7" />
         <rect width="360" height="200" fill="url(#ms-grid)" />
 
         {/* Blocks + a park + water for a city-like feel */}
-        <rect x="24" y="24" width="80" height="56" rx="6" fill="#e3ece9" />
-        <rect x="220" y="120" width="110" height="60" rx="6" fill="#e3ece9" />
-        <rect x="200" y="16" width="60" height="34" rx="6" fill="#dcece0" />
-        <circle cx="80" cy="182" r="26" fill="#dbe9f2" />
+        <rect x="24" y="24" width="80" height="56" rx="6" fill="#e4e9f1" />
+        <rect x="220" y="120" width="110" height="60" rx="6" fill="#e4e9f1" />
+        <rect x="200" y="16" width="60" height="34" rx="6" fill="#e7ecf3" />
+        <circle cx="80" cy="182" r="26" fill="#dde7f5" />
 
         {/* Main roads */}
         <path d="M0 150H360" stroke="#ffffff" strokeWidth="12" />
@@ -90,7 +90,7 @@ export function MapView({
         <g transform="translate(60,150)">
           <circle r="16" fill="#fff" stroke="var(--color-brand-600)" strokeWidth="2.5" />
           <foreignObject x="-9" y="-9" width="18" height="18">
-            <div style={{ color: "#0d8c6f" }}>
+            <div style={{ color: "#0d54c4" }}>
               <Store size={18} />
             </div>
           </foreignObject>
@@ -119,10 +119,10 @@ export function MapView({
           </g>
         )}
 
-        <text x="60" y="182" textAnchor="middle" fontSize="9" fill="#4e626f" fontWeight="600">
+        <text x="60" y="182" textAnchor="middle" fontSize="9" fill="#5b6675" fontWeight="600">
           Pharmacy
         </text>
-        <text x="300" y="44" textAnchor="middle" fontSize="9" fill="#4e626f" fontWeight="600">
+        <text x="300" y="44" textAnchor="middle" fontSize="9" fill="#5b6675" fontWeight="600">
           You
         </text>
       </svg>

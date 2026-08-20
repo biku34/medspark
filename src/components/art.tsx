@@ -361,7 +361,7 @@ export function CategoryArt({
 
 export const SERVICE_PALETTE = {
   rx: { well: "#FFF3DC", base: "#F0A32B", deep: "#B96F09", pop: "#FFE1A8" },
-  care: { well: "#EAF1FF", base: "#4C7DF0", deep: "#2A55B8", pop: "#BBD0FF" },
+  care: { well: "#F0EBFE", base: "#7A5CE6", deep: "#4C31A5", pop: "#D5C8FB" },
   repeat: { well: "#E4F6EE", base: "#17A472", deep: "#0A6E4A", pop: "#AFE9D0" },
   physio: { well: "#EDEBFF", base: "#7B6BE8", deep: "#4E3EB4", pop: "#C7C0FF" },
   nursing: { well: "#FFEDF3", base: "#E86C9B", deep: "#B23C6E", pop: "#FFC7DC" },

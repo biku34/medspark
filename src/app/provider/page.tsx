@@ -665,7 +665,7 @@ export default function ProviderDashboard() {
           </Field>
         </div>
         {credFile && (
-          <p className="mt-2 text-xs text-emerald-700">Selected: {credFile}</p>
+          <p className="mt-2 text-xs text-ok-700">Selected: {credFile}</p>
         )}
       </Modal>
     </StaffShell>

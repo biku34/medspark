@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { useApp } from "./providers";
 
 const ICONS = {
-  success: <CheckCircle2 size={18} className="text-emerald-600" />,
+  success: <CheckCircle2 size={18} className="text-ok-600" />,
   error: <AlertCircle size={18} className="text-red-600" />,
   info: <Info size={18} className="text-sky-600" />,
 };

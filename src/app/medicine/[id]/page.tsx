@@ -75,7 +75,7 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
           style={{ background: paletteFor(m.subcategory).well }}
         >
           {hasDiscount && available && (
-            <span className="absolute left-0 top-3 rounded-r-md bg-offer-600 px-2 py-1 text-[12px] font-extrabold text-white">
+            <span className="absolute left-0 top-3 rounded-r-md bg-ok-600 px-2 py-1 text-[12px] font-extrabold text-white">
               {off}% OFF
             </span>
           )}

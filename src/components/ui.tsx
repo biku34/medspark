@@ -146,7 +146,7 @@ type Tone = "brand" | "green" | "amber" | "red" | "blue" | "slate" | "purple";
 
 const TONES: Record<Tone, string> = {
   brand: "bg-brand-50 text-brand-800 border-brand-200",
-  green: "bg-brand-100 text-brand-800 border-brand-200",
+  green: "bg-ok-100 text-ok-800 border-ok-200",
   amber: "bg-rx-100 text-rx-800 border-rx-200",
   red: "bg-red-50 text-red-700 border-red-200",
   blue: "bg-care-100 text-care-800 border-care-200",

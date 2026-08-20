@@ -6,25 +6,39 @@
    The app is a pharmacy that moves at quick-commerce speed, so the palette has
    to do two jobs that usually fight: feel urgent and feel safe.
 
-   Green carries speed and "go", but a yellow-green reads as groceries, so ours
-   is pulled deep and slightly cool — closer to a hospital corridor than a
-   vegetable aisle. Amber is reserved almost entirely for ℞: anything the colour
-   of that amber needs a pharmacist. Blue is money (discounts, savings), violet
-   is care services. Nothing else gets to be loud.
+   Blue carries the brand — clinical, calm, and the colour of everything that
+   is DawaQuick doing its job: the header, primary buttons, the delivery
+   promise. Green is kept back for the two things a customer counts as a win,
+   money saved and a step completed, which is why a discount flag and a
+   "Verified" tick share it. Amber is reserved almost entirely for ℞: anything
+   that colour needs a pharmacist. Violet belongs to the home-care services.
+   Nothing else gets to be loud.
    -------------------------------------------------------------------------- */
 
 @theme {
-  /* Primary — delivery, "ADD", confirmation */
-  --color-brand-50: #e8f6ef;
-  --color-brand-100: #c7ead9;
-  --color-brand-200: #93d6b8;
-  --color-brand-300: #55bd93;
-  --color-brand-400: #22a373;
-  --color-brand-500: #0f8c5f;
-  --color-brand-600: #07784f;
-  --color-brand-700: #056240;
-  --color-brand-800: #044d33;
-  --color-brand-900: #033a27;
+  /* Primary — DawaQuick itself: header, primary actions, delivery, "ADD" */
+  --color-brand-50: #eaf2fe;
+  --color-brand-100: #d3e4fd;
+  --color-brand-200: #a8c8fa;
+  --color-brand-300: #74a5f5;
+  --color-brand-400: #4585ee;
+  --color-brand-500: #1f6ae0;
+  --color-brand-600: #0d54c4;
+  --color-brand-700: #0a439d;
+  --color-brand-800: #083578;
+  --color-brand-900: #06285a;
+
+  /* Success and savings — verified, delivered, in stock, money off */
+  --color-ok-50: #e8f6ee;
+  --color-ok-100: #c8ead6;
+  --color-ok-200: #93d6b0;
+  --color-ok-300: #55bd8a;
+  --color-ok-400: #22a36c;
+  --color-ok-500: #0f8c5b;
+  --color-ok-600: #07784d;
+  --color-ok-700: #05623e;
+  --color-ok-800: #044d33;
+  --color-ok-900: #033a27;
 
   /* ℞ — prescription, verification, "a pharmacist must look at this" */
   --color-rx-50: #fff6e5;
@@ -37,21 +51,17 @@
   --color-rx-700: #92560a;
   --color-rx-800: #74440c;
 
-  /* Care services — home visits, care plans */
-  --color-care-50: #eef2ff;
-  --color-care-100: #dbe3ff;
-  --color-care-200: #bccbff;
-  --color-care-300: #93a9fa;
-  --color-care-400: #6f88f3;
-  --color-care-500: #4c7df0;
-  --color-care-600: #3560d8;
-  --color-care-700: #2a4bb0;
-  --color-care-800: #24408e;
-
-  /* Money — discounts, savings, offers */
-  --color-offer-500: #1f6feb;
-  --color-offer-600: #1558c7;
-  --color-offer-700: #10459d;
+  /* Care services — home visits, care plans. Violet, so it never reads as
+     the brand blue nor as a prescription. */
+  --color-care-50: #f2effe;
+  --color-care-100: #e4defd;
+  --color-care-200: #cbbffb;
+  --color-care-300: #ab97f6;
+  --color-care-400: #9179ef;
+  --color-care-500: #7a5ce6;
+  --color-care-600: #6544d2;
+  --color-care-700: #5134a9;
+  --color-care-800: #422b88;
 
   /* Neutrals. A touch cool so white surfaces read clean, not creamy. */
   --color-ink-50: #f8f9fa;

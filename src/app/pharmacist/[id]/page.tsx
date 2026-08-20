@@ -398,7 +398,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
               <div className="rounded-xl bg-ink-50 p-3">
                 <p className="flex items-center gap-2 text-sm font-semibold text-ink-900">
                   {callVerified ? (
-                    <CheckCircle2 size={16} className="text-emerald-600" />
+                    <CheckCircle2 size={16} className="text-ok-600" />
                   ) : (
                     <XCircle size={16} className="text-amber-600" />
                   )}
@@ -409,7 +409,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                   {CHECK_LABELS.map((c) => (
                     <li key={c.key} className="flex items-center gap-1.5 text-xs text-ink-600">
                       {rx.call!.checklist[c.key] ? (
-                        <CheckCircle2 size={12} className="text-emerald-600" />
+                        <CheckCircle2 size={12} className="text-ok-600" />
                       ) : (
                         <XCircle size={12} className="text-ink-300" />
                       )}
@@ -537,7 +537,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
               className={
                 "mt-3 " +
                 (rx.status === "APPROVED"
-                  ? "border-emerald-200 bg-emerald-50/60"
+                  ? "border-ok-200 bg-ok-50/60"
                   : "border-red-200 bg-red-50/60")
               }
             >
@@ -545,7 +545,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                 {rx.status === "APPROVED" ? "Approved & released" : "Rejected"}
               </p>
               {rx.status === "APPROVED" && (
-                <p className="mt-1 text-xs font-bold text-emerald-800">
+                <p className="mt-1 text-xs font-bold text-ok-800">
                   {rx.refillsAuthorised
                     ? `${(rx.refillsAuthorised ?? 0) - (rx.refillsUsed ?? 0)} of ${rx.refillsAuthorised} repeat dispensings left · valid until ${rx.validUntil}`
                     : "No repeat dispensings authorised"}

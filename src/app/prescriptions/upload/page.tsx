@@ -130,7 +130,7 @@ export default function UploadPrescriptionPage() {
               )}
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="flex min-w-0 items-center gap-1.5 text-sm text-emerald-700">
+              <p className="flex min-w-0 items-center gap-1.5 text-sm text-ok-700">
                 <CheckCircle2 size={15} className="shrink-0" />
                 <span className="truncate">{fileName}</span>
               </p>

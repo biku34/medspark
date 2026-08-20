@@ -50,7 +50,7 @@ const DEMO_ACCOUNTS: Array<{
     label: "Pharmacy",
     who: "HealthFirst Pharmacy",
     icon: Building2,
-    tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    tone: "bg-ok-50 text-ok-700 border-ok-200",
   },
   {
     role: "delivery",

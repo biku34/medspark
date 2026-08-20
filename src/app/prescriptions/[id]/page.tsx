@@ -129,17 +129,17 @@ export default function PrescriptionDetailPage({
 
       {/* ------------------------------ status ---------------------------- */}
       {rx.status === "APPROVED" ? (
-        <Card className="border-emerald-200 bg-emerald-50/70">
+        <Card className="border-ok-200 bg-ok-50/70">
           <div className="flex items-start gap-3">
-            <CheckCircle2 size={26} className="mt-0.5 shrink-0 text-emerald-600" />
+            <CheckCircle2 size={26} className="mt-0.5 shrink-0 text-ok-600" />
             <div>
-              <h1 className="text-lg font-bold text-emerald-900">Prescription Verified ✓</h1>
-              <p className="mt-1 text-sm leading-relaxed text-emerald-800">
+              <h1 className="text-lg font-bold text-ok-900">Prescription Verified ✓</h1>
+              <p className="mt-1 text-sm leading-relaxed text-ok-800">
                 Your prescription has been verified by our pharmacist. You can now select a nearby
                 pharmacy for fulfilment.
               </p>
               {rx.verificationNote && (
-                <p className="mt-2 rounded-lg bg-white/70 p-2.5 text-xs text-emerald-900">
+                <p className="mt-2 rounded-lg bg-white/70 p-2.5 text-xs text-ok-900">
                   <strong>Pharmacist note:</strong> “{rx.verificationNote}” —{" "}
                   {rx.verifiedByName}
                 </p>
@@ -262,7 +262,7 @@ export default function PrescriptionDetailPage({
             {Object.entries(rx.call.checklist).map(([k, v]) => (
               <li key={k} className="flex items-center gap-1.5 text-xs text-ink-600">
                 {v ? (
-                  <CheckCircle2 size={13} className="text-emerald-600" />
+                  <CheckCircle2 size={13} className="text-ok-600" />
                 ) : (
                   <XCircle size={13} className="text-ink-300" />
                 )}
