@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Stethoscope,
   Truck,
+  X,
   User as UserIcon,
 } from "lucide-react";
 import { LogoMark } from "./brand";
@@ -273,13 +274,58 @@ export function BottomNav() {
  * whatever screen they wander to. So it follows them, sitting above the tab
  * bar rather than pushing the catalogue down from the top.
  */
-function LiveOrderCard() {
+/** Dismissals live here so a card stays gone as you move between pages. */
+const DISMISSED_KEY = "dawaquick.dismissedOrders";
+
+type Dismissed = Record<string, string>;
+
+function readDismissed(): Dismissed {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_KEY);
+    return raw ? (JSON.parse(raw) as Dismissed) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDismissed(value: Dismissed) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(value));
+  } catch {
+    /* private mode — dismissals just do not survive the session */
+  }
+}
+
+/**
+ * The orders in flight, docked to the bottom of the screen.
+ *
+ * Deliveries in progress are live things, not page sections: the customer keeps
+ * shopping while they run and wants the ETA within thumb reach on whatever
+ * screen they wander to. So the dock follows them, sitting above the tab bar.
+ *
+ * With more than one order it becomes a swipeable carousel rather than a stack,
+ * because two full cards would eat half a phone screen. Each card can be
+ * dismissed — but the dismissal is remembered against the order's *status*, so
+ * the card comes back the moment something actually changes ("Out for
+ * delivery" is news even if you waved away "Order confirmed"). A dismissal
+ * hides a card; it never stops the order.
+ */
+function LiveOrders() {
   const { user } = useApp();
   const pathname = usePathname();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [dismissed, setDismissed] = useState<Dismissed>({});
+  const [page, setPage] = useState(0);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
   // Redundant on the tracking page itself, and unwelcome mid-checkout.
   const muted = /^\/orders\/[^/]+/.test(pathname) || pathname.startsWith("/checkout");
+
+  useEffect(() => {
+    setDismissed(readDismissed());
+  }, []);
 
   useEffect(() => {
     if (!user || muted) {
@@ -305,62 +351,105 @@ function LiveOrderCard() {
 
   const live = orders
     .filter((o) => !["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status))
+    .filter((o) => dismissed[o.id] !== o.status)
     .sort((a, b) => a.promisedTo.localeCompare(b.promisedTo));
 
   if (live.length === 0) return null;
 
-  // Show the one arriving soonest; the rest are one tap away.
-  const next = live[0];
-  const more = live.length - 1;
+  const hide = (o: Order) => {
+    const next = { ...dismissed, [o.id]: o.status };
+    setDismissed(next);
+    writeDismissed(next);
+  };
+
+  const goTo = (i: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+  };
+
+  const current = Math.min(page, live.length - 1);
 
   return (
-    /* No entry animation: this dock persists across navigation, and a bar
-       that slides up again on every route change reads as a bug. The cart
-       bar keeps its animation because it genuinely appears on an action. */
-    <Link href={more > 0 ? "/orders" : `/orders/${next.id}`} className="relative block">
-      {/* a second card peeking out says "there is more than one" without words */}
-      {more > 0 && (
-        <span className="absolute inset-x-3 -top-1.5 h-4 rounded-t-2xl bg-ink-800 shadow-lg" />
-      )}
+    <div>
+      <div
+        ref={trackRef}
+        data-qa="order-track"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (el.clientWidth > 0) setPage(Math.round(el.scrollLeft / el.clientWidth));
+        }}
+        className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
+      >
+        {live.map((o) => (
+          <div key={o.id} className="w-full shrink-0 snap-center">
+            <article className="overflow-hidden rounded-2xl bg-ink-900 text-white shadow-xl shadow-ink-900/25">
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <Link
+                  href={`/orders/${o.id}`}
+                  className="flex min-w-0 flex-1 items-center gap-2.5"
+                >
+                  <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
+                    <Truck size={17} strokeWidth={2.4} className="text-brand-300" />
+                    <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                      <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-400 ring-2 ring-ink-900" />
+                    </span>
+                  </span>
 
-      <span className="relative block overflow-hidden rounded-2xl bg-ink-900 text-white shadow-xl shadow-ink-900/25">
-        <span className="flex items-center gap-2.5 px-3 py-2.5">
-          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
-            <Truck size={17} strokeWidth={2.4} className="text-brand-300" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-              <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-400 ring-2 ring-ink-900" />
-            </span>
-          </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] font-extrabold leading-tight">
+                      {ORDER_LABELS[o.status]}
+                    </span>
+                    <span className="block truncate text-[11px] text-white/55">
+                      {o.code} · {o.pharmacyName}
+                    </span>
+                  </span>
 
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5">
-              <span className="truncate text-[14px] font-extrabold leading-tight">
-                {ORDER_LABELS[next.status]}
-              </span>
-              {more > 0 && (
-                <span className="nums shrink-0 rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-extrabold">
-                  +{more}
-                </span>
+                  <span className="nums shrink-0 rounded-lg bg-brand-500 px-2 py-1 text-center text-[13px] font-extrabold leading-none">
+                    {o.etaMinFrom}–{o.etaMinTo}
+                    <span className="block text-[9px] font-bold text-brand-100">MIN</span>
+                  </span>
+                </Link>
+
+                {/* Outside the Link so tapping it never navigates. */}
+                <button
+                  onClick={() => hide(o)}
+                  data-qa="order-close"
+                  aria-label={`Hide ${o.code} from the bottom bar`}
+                  className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X size={16} strokeWidth={2.6} />
+                </button>
+              </div>
+
+              <Link href={`/orders/${o.id}`} className="block px-3 pb-2.5">
+                <MiniTracker status={o.status} />
+              </Link>
+            </article>
+          </div>
+        ))}
+      </div>
+
+      {/* Dots, only when there is something to slide between. */}
+      {live.length > 1 && (
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+          {live.map((o, i) => (
+            <button
+              key={o.id}
+              onClick={() => goTo(i)}
+              data-qa="order-dot"
+              aria-label={`Show order ${i + 1} of ${live.length}`}
+              aria-current={i === current}
+              className={clsx(
+                "h-1.5 rounded-full transition-all",
+                i === current ? "w-5 bg-ink-900" : "w-1.5 bg-ink-900/30",
               )}
-            </span>
-            <span className="block truncate text-[11px] text-white/55">
-              {next.code} · {next.pharmacyName}
-            </span>
-          </span>
-
-          <span className="nums shrink-0 rounded-lg bg-brand-500 px-2 py-1 text-center text-[13px] font-extrabold leading-none">
-            {next.etaMinFrom}–{next.etaMinTo}
-            <span className="block text-[9px] font-bold text-brand-100">MIN</span>
-          </span>
-          <ChevronRight size={17} className="shrink-0 text-white/35" />
-        </span>
-
-        <span className="block px-3 pb-2.5">
-          <MiniTracker status={next.status} />
-        </span>
-      </span>
-    </Link>
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -409,7 +498,7 @@ function BottomDock() {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.25rem_+_env(safe-area-inset-bottom))] z-40 px-3 sm:bottom-4 no-print">
       <div className="pointer-events-auto mx-auto flex max-w-2xl flex-col gap-2">
-        <LiveOrderCard />
+        <LiveOrders />
         <CartCard />
       </div>
     </div>
