@@ -527,9 +527,13 @@ export default function ServiceBookingPage({
       {/* ------------------------------------------------------------------ */}
       {/* Sticky mobile action bar — the running total and the primary action */}
       {/* stay reachable while the customer scrolls a long form.              */}
-      {/* Sits just under the bottom nav (z-40), which overlaps it cleanly.   */}
+      {/*                                                                    */}
+      {/* Same offset as the tab bar's own height plus the safe area, because */}
+      {/* a flat bottom-14 sat under the nav on a notched phone. The floating */}
+      {/* cart and order bars step aside on this route (see ownsBottom in     */}
+      {/* customer-shell) so nothing can land on top of Confirm.              */}
       {/* ------------------------------------------------------------------ */}
-      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-ink-200 bg-white/95 backdrop-blur lg:hidden no-print">
+      <div className="fixed inset-x-0 bottom-[calc(3.25rem_+_env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white/95 backdrop-blur lg:hidden no-print">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
           <div className="min-w-0">
             <p className="text-[11px] leading-none text-ink-500">Total estimated</p>

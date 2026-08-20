@@ -274,6 +274,22 @@ export function BottomNav() {
  * whatever screen they wander to. So it follows them, sitting above the tab
  * bar rather than pushing the catalogue down from the top.
  */
+/**
+ * Screens that own the bottom edge of the display.
+ *
+ * Each ends in a primary action pinned down there — "Confirm Booking", "Place
+ * order" — so a floating bar does not merely clutter them, it covers the
+ * button the customer came to press. Both docked bars read this one list
+ * rather than keeping their own, which is how they drifted apart in the first
+ * place.
+ *
+ * The home-visit hub at /services is not included: it is a browse screen, and
+ * only the booking pages beneath it pin an action.
+ */
+const OWNS_BOTTOM = [/^\/checkout/, /^\/services\/[^/]+$/];
+
+const ownsBottom = (pathname: string) => OWNS_BOTTOM.some((r) => r.test(pathname));
+
 /** Dismissals live here so a card stays gone as you move between pages. */
 const DISMISSED_KEY = "dawaquick.dismissedOrders";
 
@@ -320,8 +336,8 @@ function LiveOrders() {
   const [page, setPage] = useState(0);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
-  // Redundant on the tracking page itself, and unwelcome mid-checkout.
-  const muted = /^\/orders\/[^/]+/.test(pathname) || pathname.startsWith("/checkout");
+  // Redundant on the tracking page itself, and in the way of a pinned action.
+  const muted = /^\/orders\/[^/]+/.test(pathname) || ownsBottom(pathname);
 
   useEffect(() => {
     setDismissed(readDismissed());
@@ -456,9 +472,10 @@ function LiveOrders() {
 function CartCard() {
   const { cart, cartCount, cartTotal } = useApp();
   const pathname = usePathname();
-  const hideOn = ["/cart", "/checkout", "/select-pharmacy"];
+  const hideOn = ["/cart", "/select-pharmacy"];
 
-  if (cart.length === 0 || hideOn.some((p) => pathname.startsWith(p))) return null;
+  if (cart.length === 0) return null;
+  if (hideOn.some((p) => pathname.startsWith(p)) || ownsBottom(pathname)) return null;
 
   return (
     <Link
