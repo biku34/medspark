@@ -21,10 +21,21 @@ interface KeyState {
 const pools: Record<ProviderName, KeyState[]> = { groq: [], gemini: [] };
 const cursors: Record<ProviderName, number> = { groq: 0, gemini: 0 };
 
+/**
+ * Splits a key pool out of an environment variable.
+ *
+ * Deliberately forgiving about the separator. Pasting three keys into a
+ * dashboard field is a manual step done once, under time pressure, and the
+ * obvious mistake — one key per line — produces a value that splits on commas
+ * into a single malformed key. That fails as a 401 on every call, which looks
+ * like a bad key rather than a bad paste. Commas, newlines, semicolons and
+ * plain whitespace all work; stray quotes are stripped.
+ */
 function load(name: ProviderName, raw: string | undefined): KeyState[] {
+  void name;
   return (raw ?? "")
-    .split(",")
-    .map((k) => k.trim())
+    .split(/[\s,;]+/)
+    .map((k) => k.trim().replace(/^["']|["']$/g, ""))
     .filter(Boolean)
     .map((key) => ({ key, cooldownUntil: 0 }));
 }
