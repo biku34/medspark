@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
-  CalendarCheck,
   CalendarDays,
   CheckCircle2,
   Clock3,
   FileUp,
-  IndianRupee,
   MapPin,
   Phone,
   ShieldAlert,
@@ -17,7 +15,8 @@ import {
   User as UserIcon,
   XCircle,
 } from "lucide-react";
-import { StaffShell } from "@/components/staff-shell";
+import { QueueTabs, StaffShell } from "@/components/staff-shell";
+import { ActionButton, Metric, MetricRow, Pill, Ticket } from "@/components/ops";
 import { useApp } from "@/components/providers";
 import {
   Badge,
@@ -27,13 +26,10 @@ import {
   EmptyState,
   Field,
   Input,
-  KeyValue,
   Modal,
   SectionTitle,
   Skeleton,
-  Stat,
   Stars,
-  Tabs,
   Textarea,
 } from "@/components/ui";
 import { RankedBars } from "@/components/charts";
@@ -231,26 +227,33 @@ export default function ProviderDashboard() {
         )}
       </Card>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Open requests" value={requests.length} tone="amber" icon={<CalendarDays size={15} />} />
-        <Stat label="Upcoming visits" value={upcoming.length} tone="brand" icon={<CalendarCheck size={15} />} />
-        <Stat label="Completed" value={completed.length} tone="green" icon={<CheckCircle2 size={15} />} />
-        <Stat label="Earnings (7 days)" value={inr(earnings.week)} tone="blue" icon={<IndianRupee size={15} />} />
+      <MetricRow>
+        <Metric
+          label="Open requests"
+          value={requests.length}
+          tone="amber"
+          live={requests.length > 0}
+        />
+        <Metric label="Upcoming visits" value={upcoming.length} tone="blue" />
+        <Metric label="Completed" value={completed.length} tone="green" />
+        <Metric label="Earned (7 days)" value={inr(earnings.week)} tone="green" />
+      </MetricRow>
+
+      <div className="mt-3">
+        <QueueTabs<Tab>
+          tabs={[
+            { id: "requests", label: "Requests", count: requests.length, urgent: true },
+            { id: "upcoming", label: "Upcoming", count: upcoming.length },
+            { id: "completed", label: "Completed", count: completed.length },
+            { id: "profile", label: "Profile" },
+            { id: "earnings", label: "Earnings" },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
       </div>
 
-      <Tabs<Tab>
-        tabs={[
-          { id: "requests", label: "Booking Requests", count: requests.length },
-          { id: "upcoming", label: "Upcoming", count: upcoming.length },
-          { id: "completed", label: "Completed", count: completed.length },
-          { id: "profile", label: "Profile & Availability" },
-          { id: "earnings", label: "Earnings" },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
-
-      <div className="mt-4">
+      <div>
         {/* ---------------------------- bookings --------------------------- */}
         {(tab === "requests" || tab === "upcoming" || tab === "completed") && (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -270,107 +273,137 @@ export default function ProviderDashboard() {
               </div>
             ) : (
               list.map((b) => (
-                <Card key={b.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-sm font-bold text-ink-900">{b.code}</p>
-                      <p className="text-xs text-ink-500">
-                        Requested {dateTime(b.createdAt)}
-                      </p>
-                    </div>
-                    <Badge tone={b.status === "COMPLETED" ? "green" : "amber"}>
-                      {bookingLabel(b.serviceType, b.status)}
-                    </Badge>
-                  </div>
-
-                  <div className="mt-3 rounded-xl bg-ink-50 p-3">
-                    <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
-                      <CalendarDays size={14} className="text-ink-400" />
-                      {bookingDateLabel(b.date)} · {b.slot}
-                    </p>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-600">
-                      <Clock3 size={12} className="text-ink-400" />
-                      {b.hours} hour{b.hours > 1 ? "s" : ""} · {inr(b.rate)}/hr ·{" "}
-                      <strong className="text-ink-800">{inr(b.serviceCharge)}</strong> to you
-                    </p>
-                  </div>
-
-                  <div className="mt-3 space-y-1">
-                    <KeyValue label="Patient" value={b.patientName} />
-                    <KeyValue
-                      label="Address"
-                      value={
-                        <span className="inline-flex items-start gap-1.5 text-right">
-                          <MapPin size={13} className="mt-0.5 shrink-0 text-ink-400" />
-                          {b.address}
-                        </span>
-                      }
-                    />
-                    {b.reason && <KeyValue label="Reason" value={b.reason} />}
-                    {b.assistanceTypes.length > 0 && (
-                      <KeyValue label="Assistance" value={b.assistanceTypes.join(", ")} />
-                    )}
-                    {b.patientNotes && <KeyValue label="Notes" value={b.patientNotes} />}
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-100 pt-3">
-                    {b.status === "REQUESTED" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="success"
+                <Ticket
+                  key={b.id}
+                  code={b.code}
+                  accent={
+                    b.status === "COMPLETED"
+                      ? "green"
+                      : b.status === "REQUESTED"
+                        ? "amber"
+                        : "blue"
+                  }
+                  meta={<span>Requested {dateTime(b.createdAt)}</span>}
+                  state={
+                    <span className="flex flex-col items-end gap-1">
+                      <Pill
+                        tone={
+                          b.status === "COMPLETED"
+                            ? "green"
+                            : b.status === "REQUESTED"
+                              ? "amber"
+                              : "blue"
+                        }
+                      >
+                        {bookingLabel(b.serviceType, b.status)}
+                      </Pill>
+                      <span className="text-[13px] font-extrabold text-brand-700">
+                        {inr(b.serviceCharge)}
+                      </span>
+                    </span>
+                  }
+                  actions={
+                    <>
+                      {b.status === "REQUESTED" && (
+                        <>
+                          <ActionButton
+                            loading={busyId === b.id}
+                            icon={<CheckCircle2 size={14} />}
+                            onClick={() => act(b, "accept")}
+                            disabled={!provider.verified}
+                          >
+                            Accept
+                          </ActionButton>
+                          <ActionButton
+                            tone="danger"
+                            loading={busyId === b.id}
+                            icon={<XCircle size={14} />}
+                            onClick={() => act(b, "reject")}
+                          >
+                            Decline
+                          </ActionButton>
+                        </>
+                      )}
+                      {b.status === "ASSIGNED" && (
+                        <ActionButton loading={busyId === b.id} onClick={() => act(b, "confirm")}>
+                          Confirm booking
+                        </ActionButton>
+                      )}
+                      {b.status === "CONFIRMED" && b.serviceType === "NURSING" && (
+                        <ActionButton
+                          loading={busyId === b.id}
+                          onClick={() => act(b, "start_visit")}
+                        >
+                          Start home visit
+                        </ActionButton>
+                      )}
+                      {((b.status === "CONFIRMED" && b.serviceType === "PHYSIO") ||
+                        b.status === "IN_VISIT") && (
+                        <ActionButton
                           loading={busyId === b.id}
                           icon={<CheckCircle2 size={14} />}
-                          onClick={() => act(b, "accept")}
-                          disabled={!provider.verified}
+                          onClick={() => act(b, "complete")}
                         >
-                          Accept Request
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          loading={busyId === b.id}
-                          icon={<XCircle size={14} />}
-                          onClick={() => act(b, "reject")}
-                        >
-                          Decline
-                        </Button>
-                      </>
-                    )}
-                    {b.status === "ASSIGNED" && (
-                      <Button size="sm" loading={busyId === b.id} onClick={() => act(b, "confirm")}>
-                        Confirm Booking
-                      </Button>
-                    )}
-                    {b.status === "CONFIRMED" && b.serviceType === "NURSING" && (
-                      <Button size="sm" loading={busyId === b.id} onClick={() => act(b, "start_visit")}>
-                        Start Home Visit
-                      </Button>
-                    )}
-                    {((b.status === "CONFIRMED" && b.serviceType === "PHYSIO") ||
-                      b.status === "IN_VISIT") && (
-                      <Button
-                        size="sm"
-                        variant="success"
-                        loading={busyId === b.id}
-                        onClick={() => act(b, "complete")}
+                          Mark completed
+                        </ActionButton>
+                      )}
+                      <a
+                        href={`tel:${b.customerPhone.replace(/\s/g, "")}`}
+                        className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-ink-300 bg-white px-3 text-[13px] font-bold text-ink-700 hover:bg-ink-100 sm:flex-none"
                       >
-                        Mark Visit Completed
-                      </Button>
-                    )}
-                    <a
-                      href={`tel:${b.customerPhone.replace(/\s/g, "")}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-ink-300 px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
-                    >
-                      <Phone size={14} /> Call patient
-                    </a>
-                    {b.rating && (
-                      <Badge tone="amber">
-                        <Star size={11} className="fill-amber-500" /> {b.rating}/5
-                      </Badge>
-                    )}
+                        <Phone size={14} /> Call patient
+                      </a>
+                      {b.rating && (
+                        <Pill tone="amber">
+                          <Star size={9} className="fill-white" /> {b.rating}/5
+                        </Pill>
+                      )}
+                    </>
+                  }
+                >
+                  {/* when and where — the two things a visiting professional plans around */}
+                  <div className="rounded-md border border-ink-200 bg-ink-50 px-2.5 py-2">
+                    <p className="flex items-center gap-1.5 text-[14px] font-bold text-ink-900">
+                      <CalendarDays size={13} className="text-ink-400" />
+                      {bookingDateLabel(b.date)} · {b.slot}
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-600">
+                      <Clock3 size={11} className="text-ink-400" />
+                      {b.hours} hour{b.hours > 1 ? "s" : ""} · {inr(b.rate)}/hr
+                    </p>
                   </div>
-                </Card>
+
+                  <p className="mt-2 flex items-start gap-1.5 text-[13px] text-ink-800">
+                    <MapPin size={13} className="mt-0.5 shrink-0 text-ink-400" />
+                    <span>
+                      <strong className="text-ink-900">{b.patientName}</strong>
+                      <span className="block text-[12px] text-ink-600">{b.address}</span>
+                    </span>
+                  </p>
+
+                  {(b.reason || b.assistanceTypes.length > 0 || b.patientNotes) && (
+                    <div className="mt-2 space-y-0.5 text-[11px] text-ink-600">
+                      {b.reason && (
+                        <p>
+                          <span className="font-bold text-ink-500">Reason: </span>
+                          {b.reason}
+                        </p>
+                      )}
+                      {b.assistanceTypes.length > 0 && (
+                        <p>
+                          <span className="font-bold text-ink-500">Assistance: </span>
+                          {b.assistanceTypes.join(", ")}
+                        </p>
+                      )}
+                      {b.patientNotes && (
+                        <p>
+                          <span className="font-bold text-ink-500">Notes: </span>
+                          {b.patientNotes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </Ticket>
               ))
             )}
           </div>
@@ -568,10 +601,10 @@ export default function ProviderDashboard() {
         {tab === "earnings" && (
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Stat label="Last 7 days" value={inr(earnings.week)} tone="brand" icon={<IndianRupee size={15} />} />
-              <Stat label="All time" value={inr(earnings.total)} tone="green" />
-              <Stat label="Visits completed" value={earnings.visits} tone="slate" />
-              <Stat label="Avg. per visit" value={inr(earnings.avg)} tone="blue" hint={`${earnings.hours} hours worked`} />
+              <Metric label="Last 7 days" value={inr(earnings.week)} tone="green" />
+              <Metric label="All time" value={inr(earnings.total)} tone="green" />
+              <Metric label="Visits completed" value={earnings.visits} />
+              <Metric label="Avg. per visit" value={inr(earnings.avg)} tone="blue" hint={`${earnings.hours} hours worked`} />
             </div>
             <Card>
               <SectionTitle title="Earnings by patient" />

@@ -5,20 +5,18 @@ import {
   Bike,
   CheckCircle2,
   Clock3,
-  IndianRupee,
   MapPin,
   Package,
   Plus,
   Search,
   ShieldCheck,
   Star,
-  TrendingUp,
   XCircle,
 } from "lucide-react";
-import { StaffShell } from "@/components/staff-shell";
+import { QueueTabs, StaffShell } from "@/components/staff-shell";
+import { ActionButton, DataTable, Metric, MetricRow, PanelTitle, Pill, Ticket, WaitTimer } from "@/components/ops";
 import { useApp } from "@/components/providers";
 import {
-  Badge,
   Button,
   Card,
   EmptyState,
@@ -29,13 +27,11 @@ import {
   SectionTitle,
   Select,
   Skeleton,
-  Stat,
-  Tabs,
 } from "@/components/ui";
 import { RankedBars } from "@/components/charts";
 import { api, patch, post } from "@/lib/client";
 import { ORDER_LABELS, type InventoryItem, type Medicine, type Order } from "@/lib/types";
-import { dateTime, inr, relativeTime } from "@/lib/utils";
+import { inr, relativeTime } from "@/lib/utils";
 
 type Tab = "new" | "active" | "completed" | "inventory" | "earnings" | "ratings";
 
@@ -149,30 +145,34 @@ export default function PharmacyDashboard() {
 
   return (
     <StaffShell role="pharmacy">
-      <SectionTitle
-        title={user?.name ?? "Pharmacy"}
-        subtitle="Incoming orders, stock and earnings for your store."
-      />
-
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="New orders" value={newOrders.length} tone="amber" icon={<Package size={15} />} />
-        <Stat label="Active" value={activeOrders.length} tone="brand" icon={<Bike size={15} />} />
-        <Stat label="Out of stock" value={outOfStock} tone="red" icon={<XCircle size={15} />} hint={`${lowStock} low`} />
-        <Stat label="Earnings today" value={inr(earnings.today)} tone="green" icon={<IndianRupee size={15} />} />
+      <div className="mb-3">
+        <h1 className="text-[18px] font-extrabold tracking-tight text-ink-900">
+          {user?.name ?? "Pharmacy"}
+        </h1>
+        <p className="text-[12px] text-ink-500">Live order queue, stock and earnings</p>
       </div>
 
-      <Tabs<Tab>
-        tabs={[
-          { id: "new", label: "New Orders", count: newOrders.length },
-          { id: "active", label: "Active Orders", count: activeOrders.length },
-          { id: "completed", label: "Completed", count: completed.length },
-          { id: "inventory", label: "Inventory", count: inventory.length },
-          { id: "earnings", label: "Earnings" },
-          { id: "ratings", label: "Ratings" },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
+      <MetricRow>
+        <Metric label="New orders" value={newOrders.length} tone="amber" live={newOrders.length > 0} />
+        <Metric label="Preparing / out" value={activeOrders.length} tone="blue" />
+        <Metric label="Out of stock" value={outOfStock} tone={outOfStock ? "red" : "neutral"} hint={`${lowStock} running low`} />
+        <Metric label="Earnings today" value={inr(earnings.today)} tone="green" hint={`${earnings.orders} delivered all time`} />
+      </MetricRow>
+
+      <div className="mt-3">
+        <QueueTabs<Tab>
+          tabs={[
+            { id: "new", label: "New", count: newOrders.length, urgent: true },
+            { id: "active", label: "Preparing", count: activeOrders.length },
+            { id: "completed", label: "Completed", count: completed.length },
+            { id: "inventory", label: "Inventory", count: inventory.length },
+            { id: "earnings", label: "Earnings" },
+            { id: "ratings", label: "Ratings" },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
+      </div>
 
       <div className="mt-4">
         {loading && <Skeleton className="h-48" />}
@@ -190,97 +190,118 @@ export default function PharmacyDashboard() {
               </div>
             ) : (
               (tab === "new" ? newOrders : tab === "active" ? activeOrders : completed).map((o) => (
-                <Card key={o.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-sm font-bold text-ink-900">{o.code}</p>
-                      <p className="text-xs text-ink-500">
-                        {dateTime(o.createdAt)} · {relativeTime(o.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge tone={o.type === "RX" ? "amber" : "green"}>
-                        {o.type === "RX" ? "Prescription" : "OTC"}
-                      </Badge>
+                <Ticket
+                  key={o.id}
+                  code={o.code}
+                  timer={o.status === "PLACED" ? <WaitTimer since={o.createdAt} /> : undefined}
+                  accent={
+                    o.status === "PLACED"
+                      ? "amber"
+                      : o.status === "DELIVERED"
+                        ? "green"
+                        : ["CANCELLED", "REJECTED"].includes(o.status)
+                          ? "red"
+                          : "blue"
+                  }
+                  meta={
+                    <span className="flex flex-wrap items-center gap-x-2">
+                      <span>{relativeTime(o.createdAt)}</span>
+                      <span>·</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <MapPin size={10} /> {o.locality} · {o.distanceKm} km
+                      </span>
+                    </span>
+                  }
+                  state={
+                    <span className="flex flex-col items-end gap-1">
+                      <Pill tone={o.type === "RX" ? "amber" : "grey"}>
+                        {o.type === "RX" ? "Rx" : "OTC"}
+                      </Pill>
                       {o.type === "RX" && (
-                        <Badge tone="green" icon={<ShieldCheck size={11} />}>
-                          Prescription Verified ✓
-                        </Badge>
+                        <Pill tone="green">
+                          <ShieldCheck size={9} strokeWidth={3} /> Verified
+                        </Pill>
                       )}
-                    </div>
-                  </div>
-
-                  <ul className="mt-3 divide-y divide-ink-100 rounded-xl bg-ink-50 px-3">
+                    </span>
+                  }
+                  actions={
+                    <>
+                      {o.status === "PLACED" && (
+                        <>
+                          <ActionButton
+                            loading={busyId === o.id}
+                            icon={<CheckCircle2 size={14} />}
+                            onClick={() => act(o, "accept")}
+                          >
+                            Accept
+                          </ActionButton>
+                          <ActionButton
+                            tone="danger"
+                            loading={busyId === o.id}
+                            icon={<XCircle size={14} />}
+                            onClick={() => act(o, "reject")}
+                          >
+                            Out of stock
+                          </ActionButton>
+                        </>
+                      )}
+                      {o.status === "PREPARING" && (
+                        <ActionButton
+                          loading={busyId === o.id}
+                          icon={<Package size={14} />}
+                          onClick={() => act(o, "ready")}
+                        >
+                          Mark ready for pickup
+                        </ActionButton>
+                      )}
+                      {o.status === "READY" && (
+                        <Pill tone="blue">Waiting for rider pickup</Pill>
+                      )}
+                      {o.status === "OUT_FOR_DELIVERY" && (
+                        <Pill tone="green">
+                          <Bike size={9} strokeWidth={3} /> Out for delivery
+                        </Pill>
+                      )}
+                      {["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status) && (
+                        <Pill tone={o.status === "DELIVERED" ? "green" : "red"}>
+                          {ORDER_LABELS[o.status]}
+                        </Pill>
+                      )}
+                    </>
+                  }
+                >
+                  {/* pick list — the thing staff actually work from */}
+                  <ul className="divide-y divide-ink-100 rounded-md border border-ink-200">
                     {o.items.map((i) => (
-                      <li key={i.medicineId} className="flex items-center justify-between gap-2 py-2 text-sm">
-                        <span className="min-w-0 truncate text-ink-800">
-                          {i.name} <span className="text-ink-400">({i.form})</span>
+                      <li
+                        key={i.medicineId}
+                        className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+                      >
+                        <span className="min-w-0 truncate text-[13px] font-medium text-ink-800">
+                          {i.name}
+                          <span className="ml-1 text-[11px] text-ink-400">{i.form}</span>
                         </span>
-                        <span className="shrink-0 font-semibold text-ink-900">× {i.qty}</span>
+                        <span className="shrink-0 rounded bg-ink-900 px-1.5 py-0.5 text-[11px] font-extrabold text-white">
+                          × {i.qty}
+                        </span>
                       </li>
                     ))}
                   </ul>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-ink-600">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={12} className="text-ink-400" />
-                      {o.locality} · {o.distanceKm} km
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-600">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 size={11} className="text-ink-400" />
+                      ETA {o.etaMinFrom}–{o.etaMinTo}m
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock3 size={12} className="text-ink-400" />
-                      ETA {o.etaMinFrom}–{o.etaMinTo} min
+                    <span className="inline-flex items-center gap-1">
+                      <Bike size={11} className="text-ink-400" />
+                      {o.deliveryPartnerName ?? "No rider yet"}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Bike size={12} className="text-ink-400" />
-                      {o.deliveryPartnerName ?? "Rider not assigned"}
-                    </span>
-                    <span className="flex items-center gap-1 font-semibold text-ink-800">
-                      <IndianRupee size={12} className="text-ink-400" />
+                    <span className="ml-auto font-bold text-ink-900">
                       {inr(o.total)} · {o.paymentMode}
                     </span>
                   </div>
-
-                  <p className="mt-2 text-xs font-medium text-ink-700">{ORDER_LABELS[o.status]}</p>
-
-                  {/* actions */}
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-ink-100 pt-3">
-                    {o.status === "PLACED" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="success"
-                          loading={busyId === o.id}
-                          icon={<CheckCircle2 size={14} />}
-                          onClick={() => act(o, "accept")}
-                        >
-                          Accept Order
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          loading={busyId === o.id}
-                          onClick={() => act(o, "reject")}
-                        >
-                          Reject / Out of Stock
-                        </Button>
-                      </>
-                    )}
-                    {o.status === "PREPARING" && (
-                      <Button size="sm" loading={busyId === o.id} onClick={() => act(o, "ready")}>
-                        Ready for Pickup
-                      </Button>
-                    )}
-                    {o.status === "READY" && (
-                      <Badge tone="blue">Waiting for delivery partner pickup</Badge>
-                    )}
-                    {o.status === "OUT_FOR_DELIVERY" && <Badge tone="brand">Out for delivery</Badge>}
-                    {["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status) && (
-                      <Badge tone={o.status === "DELIVERED" ? "green" : "red"}>
-                        {ORDER_LABELS[o.status]}
-                      </Badge>
-                    )}
-                  </div>
-                </Card>
+                </Ticket>
               ))
             )}
           </div>
@@ -289,117 +310,107 @@ export default function PharmacyDashboard() {
         {/* ---------------------------- inventory ---------------------------- */}
         {!loading && tab === "inventory" && (
           <>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="relative min-w-56 flex-1">
+            <div className="mb-2.5 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-52 flex-1">
                 <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+                  size={15}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400"
                 />
-                <Input
+                <input
                   value={invQuery}
                   onChange={(e) => setInvQuery(e.target.value)}
                   placeholder="Filter your shelf…"
-                  className="pl-9"
+                  className="h-9 w-full rounded-md border border-ink-200 bg-white pl-8 pr-3 text-[13px] outline-none focus:border-ink-400"
                 />
               </div>
-              <Button icon={<Plus size={16} />} onClick={() => setAddOpen(true)}>
-                Add medicine
-              </Button>
+              <button
+                onClick={() => setAddOpen(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink-900 px-3 text-[13px] font-bold text-white hover:bg-ink-800"
+              >
+                <Plus size={15} /> Add medicine
+              </button>
             </div>
 
-            <p className="mb-2 text-xs text-ink-500">
-              Availability shown to customers updates instantly from this list. Stock reaching 0
-              removes the medicine from nearby-search results.
+            <p className="mb-2 text-[11px] text-ink-500">
+              Customers see these numbers live. Stock at 0 drops the medicine out of nearby-search
+              results immediately.
             </p>
 
-            <div className="overflow-hidden rounded-2xl border border-ink-200 bg-white">
-              <table className="w-full text-sm">
-                <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <tr>
-                    <th className="px-3 py-2.5">Medicine</th>
-                    <th className="px-3 py-2.5">Type</th>
-                    <th className="px-3 py-2.5">Price</th>
-                    <th className="px-3 py-2.5">Stock</th>
-                    <th className="px-3 py-2.5">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100">
-                  {filteredInventory.map((i) => (
-                    <tr key={i.id}>
-                      <td className="px-3 py-2.5">
-                        <p className="font-medium text-ink-900">{i.medicine?.name}</p>
-                        <p className="text-xs text-ink-500">
-                          {i.medicine?.brand} · {i.medicine?.strength} · {i.medicine?.form}
-                        </p>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <Badge tone={i.medicine?.type === "OTC" ? "green" : "amber"}>
-                          {i.medicine?.type}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <input
-                          type="number"
-                          value={i.price}
-                          min={0}
-                          onChange={(e) => updateStock(i, i.stock, Number(e.target.value))}
-                          className="w-20 rounded-lg border border-ink-200 px-2 py-1 text-sm"
-                        />
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => updateStock(i, Math.max(0, i.stock - 1))}
-                            className="h-7 w-7 rounded-lg border border-ink-200 text-ink-600 hover:bg-ink-50"
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            value={i.stock}
-                            min={0}
-                            onChange={(e) => updateStock(i, Math.max(0, Number(e.target.value)))}
-                            className="w-16 rounded-lg border border-ink-200 px-2 py-1 text-center text-sm"
-                          />
-                          <button
-                            onClick={() => updateStock(i, i.stock + 1)}
-                            className="h-7 w-7 rounded-lg border border-ink-200 text-ink-600 hover:bg-ink-50"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {i.stock === 0 ? (
-                          <Badge tone="red">Out of Stock</Badge>
-                        ) : i.stock <= 5 ? (
-                          <Badge tone="amber">Low · {i.stock}</Badge>
-                        ) : (
-                          <Badge tone="green">Available</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredInventory.length === 0 && (
-                <p className="p-6 text-center text-sm text-ink-500">No matching medicines.</p>
-              )}
-            </div>
+            <DataTable
+              head={["Medicine", "Type", "Price ₹", "Stock", "Status"]}
+              empty={filteredInventory.length === 0}
+            >
+              {filteredInventory.map((i) => (
+                <tr key={i.id} className={i.stock === 0 ? "bg-red-50/60" : undefined}>
+                  <td className="px-3 py-2">
+                    <p className="font-semibold text-ink-900">{i.medicine?.name}</p>
+                    <p className="text-[11px] text-ink-500">
+                      {i.medicine?.brand} · {i.medicine?.strength} · {i.medicine?.form}
+                    </p>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Pill tone={i.medicine?.type === "OTC" ? "grey" : "amber"}>
+                      {i.medicine?.type}
+                    </Pill>
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={i.price}
+                      min={0}
+                      onChange={(e) => updateStock(i, i.stock, Number(e.target.value))}
+                      className="w-20 rounded border border-ink-200 px-2 py-1 text-[13px] tabular-nums outline-none focus:border-ink-400"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => updateStock(i, Math.max(0, i.stock - 1))}
+                        className="h-7 w-7 rounded-l border border-ink-200 font-bold text-ink-600 hover:bg-ink-100"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        value={i.stock}
+                        min={0}
+                        onChange={(e) => updateStock(i, Math.max(0, Number(e.target.value)))}
+                        className="h-7 w-14 border-y border-ink-200 text-center text-[13px] font-bold tabular-nums outline-none focus:border-ink-400"
+                      />
+                      <button
+                        onClick={() => updateStock(i, i.stock + 1)}
+                        className="h-7 w-7 rounded-r border border-ink-200 font-bold text-ink-600 hover:bg-ink-100"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {i.stock === 0 ? (
+                      <Pill tone="red">Out of stock</Pill>
+                    ) : i.stock <= 5 ? (
+                      <Pill tone="amber">Low · {i.stock}</Pill>
+                    ) : (
+                      <Pill tone="green">Available</Pill>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
           </>
         )}
 
         {/* ----------------------------- earnings ---------------------------- */}
         {!loading && tab === "earnings" && (
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Stat label="Today" value={inr(earnings.today)} tone="green" icon={<IndianRupee size={15} />} />
-              <Stat label="Last 7 days" value={inr(earnings.week)} tone="brand" icon={<TrendingUp size={15} />} />
-              <Stat label="All time" value={inr(earnings.allTime)} tone="slate" />
-              <Stat label="Avg. basket" value={inr(earnings.avg)} tone="blue" hint={`${earnings.orders} orders`} />
+            <div className="grid grid-cols-2 gap-2">
+              <Metric label="Today" value={inr(earnings.today)} tone="green" />
+              <Metric label="Last 7 days" value={inr(earnings.week)} tone="green" />
+              <Metric label="All time" value={inr(earnings.allTime)} />
+              <Metric label="Avg. basket" value={inr(earnings.avg)} tone="blue" hint={`${earnings.orders} orders`} />
             </div>
             <Card>
-              <SectionTitle title="Top selling from your shelf" />
+              <PanelTitle title="Top selling from your shelf" />
               {earnings.topMedicines.length ? (
                 <RankedBars items={earnings.topMedicines} unit="units" />
               ) : (
@@ -420,7 +431,7 @@ export default function PharmacyDashboard() {
         {!loading && tab === "ratings" && (
           <div className="grid gap-3 lg:grid-cols-2">
             <Card>
-              <SectionTitle title="Your rating" />
+              <PanelTitle title="Your rating" />
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-ink-900">4.7</p>

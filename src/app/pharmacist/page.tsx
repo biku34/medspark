@@ -2,17 +2,26 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, FileText, MessageSquare, XCircle } from "lucide-react";
-import { StaffShell } from "@/components/staff-shell";
+import { CheckCircle2, FileText, Phone } from "lucide-react";
+import { QueueTabs, StaffShell } from "@/components/staff-shell";
+import { Metric, MetricRow, Pill, Ticket, WaitTimer } from "@/components/ops";
 import { ComplianceNote } from "@/components/brand";
-import { Badge, Card, EmptyState, SectionTitle, Skeleton, Stat, Tabs } from "@/components/ui";
+import { EmptyState, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
 import { PRESCRIPTION_LABELS, type Prescription, type PrescriptionStatus } from "@/lib/types";
-import { dateTime, relativeTime } from "@/lib/utils";
+import { relativeTime } from "@/lib/utils";
 
 type Tab = "queue" | "clarification" | "approved" | "rejected";
 
-const TONE: Record<PrescriptionStatus, "amber" | "green" | "red" | "blue" | "slate"> = {
+const TONE: Record<PrescriptionStatus, "amber" | "green" | "red" | "blue" | "grey"> = {
+  PENDING: "amber",
+  IN_REVIEW: "blue",
+  CLARIFICATION: "amber",
+  APPROVED: "green",
+  REJECTED: "red",
+};
+
+const ACCENT: Record<PrescriptionStatus, "amber" | "green" | "red" | "blue" | "grey"> = {
   PENDING: "amber",
   IN_REVIEW: "blue",
   CLARIFICATION: "amber",
@@ -42,7 +51,13 @@ export default function PharmacistDashboard() {
   const rejected = list.filter((p) => p.status === "REJECTED");
 
   const shown =
-    tab === "queue" ? queue : tab === "clarification" ? clarification : tab === "approved" ? approved : rejected;
+    tab === "queue"
+      ? queue
+      : tab === "clarification"
+        ? clarification
+        : tab === "approved"
+          ? approved
+          : rejected;
 
   const avgWait = queue.length
     ? Math.round(
@@ -53,59 +68,89 @@ export default function PharmacistDashboard() {
 
   return (
     <StaffShell role="pharmacist">
-      <SectionTitle
-        title="Prescription verification queue"
-        subtitle="Every prescription medicine order in the network passes through this desk."
-      />
-
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Pending" value={queue.length} tone="amber" icon={<Clock3 size={15} />} hint={`avg wait ${avgWait} min`} />
-        <Stat label="Awaiting customer" value={clarification.length} tone="blue" icon={<MessageSquare size={15} />} />
-        <Stat label="Approved" value={approved.length} tone="green" icon={<CheckCircle2 size={15} />} />
-        <Stat label="Rejected" value={rejected.length} tone="red" icon={<XCircle size={15} />} />
+      <div className="mb-3">
+        <h1 className="text-[18px] font-extrabold tracking-tight text-ink-900">
+          Verification desk
+        </h1>
+        <p className="text-[12px] text-ink-500">
+          Every prescription order in the network passes through here
+        </p>
       </div>
 
-      <ComplianceNote className="mb-4" />
+      <MetricRow>
+        <Metric
+          label="Pending"
+          value={queue.length}
+          tone="amber"
+          live={queue.length > 0}
+          hint={`avg wait ${avgWait} min`}
+        />
+        <Metric label="Awaiting customer" value={clarification.length} tone="blue" />
+        <Metric label="Approved" value={approved.length} tone="green" />
+        <Metric label="Rejected" value={rejected.length} tone={rejected.length ? "red" : "neutral"} />
+      </MetricRow>
 
-      <Tabs<Tab>
-        tabs={[
-          { id: "queue", label: "Pending Prescriptions", count: queue.length },
-          { id: "clarification", label: "Clarification", count: clarification.length },
-          { id: "approved", label: "Approved", count: approved.length },
-          { id: "rejected", label: "Rejected", count: rejected.length },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
+      <div className="mt-3">
+        <QueueTabs<Tab>
+          tabs={[
+            { id: "queue", label: "To verify", count: queue.length, urgent: true },
+            { id: "clarification", label: "Clarification", count: clarification.length },
+            { id: "approved", label: "Approved", count: approved.length },
+            { id: "rejected", label: "Rejected", count: rejected.length },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
+      </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+      <ComplianceNote className="mb-3" />
+
+      <div className="grid gap-3 lg:grid-cols-2">
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-40" />)
         ) : shown.length === 0 ? (
           <div className="lg:col-span-2">
             <EmptyState
-              icon={<FileText size={38} />}
+              icon={<FileText size={36} />}
               title="Nothing here right now"
               body="New prescription uploads appear automatically."
             />
           </div>
         ) : (
           shown.map((p) => (
-            <Card key={p.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-ink-900">
-                    <span className="font-mono">{p.ref}</span>
-                    <Badge tone={TONE[p.status]}>{PRESCRIPTION_LABELS[p.status]}</Badge>
-                  </p>
-                  <p className="mt-1 text-sm text-ink-700">
-                    Patient: <strong>{p.patientName}</strong>
-                  </p>
-                  <p className="text-xs text-ink-500">
-                    Submitted by {p.customerName} · {dateTime(p.createdAt)} ({relativeTime(p.createdAt)})
-                  </p>
-                </div>
-                <div className="h-16 w-14 shrink-0 overflow-hidden rounded-lg border border-ink-200 bg-ink-50">
+            <Ticket
+              key={p.id}
+              code={p.ref}
+              accent={ACCENT[p.status]}
+              timer={
+                p.status === "PENDING" || p.status === "IN_REVIEW" ? (
+                  <WaitTimer since={p.createdAt} warnAfter={5} breachAfter={15} />
+                ) : undefined
+              }
+              meta={
+                <span>
+                  {p.customerName} · {relativeTime(p.createdAt)}
+                </span>
+              }
+              state={<Pill tone={TONE[p.status]}>{PRESCRIPTION_LABELS[p.status]}</Pill>}
+              actions={
+                <>
+                  <Link
+                    href={`/pharmacist/${p.id}`}
+                    className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-600 px-3 text-[13px] font-bold text-white hover:bg-brand-700 sm:flex-none"
+                  >
+                    <CheckCircle2 size={14} />
+                    {p.status === "APPROVED" || p.status === "REJECTED" ? "Open record" : "Verify now"}
+                  </Link>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-ink-500">
+                    <Phone size={11} className="text-ink-400" />
+                    {p.call ? `Call logged · ${p.call.outcome}` : "No verification call yet"}
+                  </span>
+                </>
+              }
+            >
+              <div className="flex gap-2.5">
+                <div className="h-16 w-14 shrink-0 overflow-hidden rounded-md border border-ink-200 bg-ink-50">
                   {p.mimeType === "application/pdf" ? (
                     <div className="flex h-full items-center justify-center">
                       <FileText size={18} className="text-ink-400" />
@@ -115,39 +160,31 @@ export default function PharmacistDashboard() {
                     <img src={p.fileData} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] text-ink-700">
+                    Patient <strong className="text-ink-900">{p.patientName}</strong>
+                  </p>
+
+                  {p.extractedMedicines.length > 0 && (
+                    <ul className="mt-1.5 flex flex-wrap gap-1">
+                      {p.extractedMedicines.map((m) => (
+                        <li
+                          key={m.name}
+                          className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 text-[11px] font-semibold text-ink-700"
+                        >
+                          {m.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {p.note && (
+                    <p className="clamp-2 mt-1.5 text-[11px] italic text-ink-500">“{p.note}”</p>
+                  )}
+                </div>
               </div>
-
-              {p.extractedMedicines.length > 0 && (
-                <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {p.extractedMedicines.map((m) => (
-                    <li
-                      key={m.name}
-                      className="rounded-full bg-ink-100 px-2.5 py-1 text-xs font-medium text-ink-700"
-                    >
-                      {m.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {p.note && (
-                <p className="mt-2 rounded-lg bg-ink-50 p-2.5 text-xs text-ink-600">
-                  “{p.note}”
-                </p>
-              )}
-
-              <div className="mt-3 flex items-center justify-between border-t border-ink-100 pt-3">
-                <span className="text-xs text-ink-400">
-                  {p.call ? `Call logged · ${p.call.outcome}` : "No verification call yet"}
-                </span>
-                <Link
-                  href={`/pharmacist/${p.id}`}
-                  className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-                >
-                  Review Prescription
-                </Link>
-              </div>
-            </Card>
+            </Ticket>
           ))
         )}
       </div>

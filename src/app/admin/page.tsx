@@ -2,23 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Activity,
-  Bike,
-  Building2,
   CalendarDays,
   CheckCircle2,
-  Clock3,
   HeartPulse,
-  FileText,
   IndianRupee,
-  Package,
   Plus,
   ShieldCheck,
   Stethoscope,
   Users,
   XCircle,
 } from "lucide-react";
-import { StaffShell } from "@/components/staff-shell";
+import { QueueTabs, StaffShell } from "@/components/staff-shell";
+import { Metric, MetricRow, PanelTitle } from "@/components/ops";
 import { useApp } from "@/components/providers";
 import { Donut, GroupedBars, RankedBars, Sparkline } from "@/components/charts";
 import {
@@ -34,7 +29,6 @@ import {
   Skeleton,
   Stat,
   Stars,
-  Tabs,
 } from "@/components/ui";
 import { api, patch, post } from "@/lib/client";
 import type { AdminStats } from "@/lib/services";
@@ -185,15 +179,20 @@ export default function AdminDashboard() {
 
   return (
     <StaffShell role="admin">
-      <SectionTitle title="DawaQuick network overview" subtitle="Live prototype data" />
+      <div className="mb-3">
+        <h1 className="text-[18px] font-extrabold tracking-tight text-ink-900">Control tower</h1>
+        <p className="text-[12px] text-ink-500">
+          Live network activity across Gandhinagar and Ahmedabad
+        </p>
+      </div>
 
-      <Tabs<Tab>
+      <QueueTabs<Tab>
         tabs={[
           { id: "overview", label: "Overview" },
-          { id: "pharmacies", label: "Pharmacy Management", count: pharmacies.length },
-          { id: "pharmacists", label: "Pharmacist Management", count: t.pharmacists },
+          { id: "pharmacies", label: "Pharmacies", count: pharmacies.length },
+          { id: "pharmacists", label: "Pharmacists", count: t.pharmacists },
           { id: "orders", label: "Orders", count: orders.length },
-          { id: "homecare", label: "Home Healthcare", count: providers.length },
+          { id: "homecare", label: "Home care", count: providers.length },
           { id: "analytics", label: "Analytics" },
         ]}
         active={tab}
@@ -202,25 +201,37 @@ export default function AdminDashboard() {
 
       {/* ------------------------------ overview ---------------------------- */}
       {tab === "overview" && (
-        <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Total customers" value={t.customers.toLocaleString("en-IN")} tone="brand" icon={<Users size={15} />} />
-            <Stat label="Active pharmacies" value={t.activePharmacies} hint={`${t.pharmacies} onboarded`} tone="green" icon={<Building2 size={15} />} />
-            <Stat label="Pharmacists" value={t.pharmacists} tone="amber" icon={<Stethoscope size={15} />} />
-            <Stat label="Delivery partners" value={t.riders} tone="blue" icon={<Bike size={15} />} />
-            <Stat label="Orders today" value={t.ordersToday} tone="brand" icon={<Package size={15} />} />
-            <Stat label="OTC orders today" value={t.otcToday} tone="green" />
-            <Stat label="Prescription orders today" value={t.rxToday} tone="amber" />
-            <Stat label="Completed deliveries" value={t.completedDeliveries} tone="green" icon={<CheckCircle2 size={15} />} />
-            <Stat
-              label="Pending ℞ verifications"
+        <div className="space-y-3">
+          {/* what needs a human right now, ahead of the vanity counts */}
+          <MetricRow>
+            <Metric
+              label="Pending ℞ checks"
               value={t.pendingVerifications}
-              tone={t.pendingVerifications > 0 ? "red" : "slate"}
-              icon={<FileText size={15} />}
+              tone={t.pendingVerifications > 0 ? "red" : "green"}
+              live={t.pendingVerifications > 0}
             />
-            <Stat label="Avg. delivery time" value={`${t.avgDeliveryMinutes} min`} tone="blue" icon={<Clock3 size={15} />} />
-            <Stat label="Revenue today" value={inr(t.revenueToday)} tone="purple" icon={<IndianRupee size={15} />} />
-            <Stat label="Network health" value="Healthy" tone="green" icon={<Activity size={15} />} />
+            <Metric label="Orders today" value={t.ordersToday} tone="blue" hint={`${t.otcToday} OTC · ${t.rxToday} ℞`} />
+            <Metric label="Revenue today" value={inr(t.revenueToday)} tone="green" />
+            <Metric label="Avg. delivery" value={`${t.avgDeliveryMinutes} min`} tone="violet" />
+          </MetricRow>
+
+          <div>
+            <PanelTitle title="Network" />
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Metric label="Customers" value={t.customers.toLocaleString("en-IN")} />
+              <Metric
+                label="Active pharmacies"
+                value={t.activePharmacies}
+                hint={`${t.pharmacies} onboarded`}
+                tone="green"
+              />
+              <Metric label="Pharmacists" value={t.pharmacists} />
+              <Metric label="Delivery partners" value={t.riders} />
+              <Metric label="Completed deliveries" value={t.completedDeliveries} tone="green" />
+              <Metric label="OTC today" value={t.otcToday} />
+              <Metric label="Prescription today" value={t.rxToday} tone="amber" />
+              <Metric label="Network health" value="Healthy" tone="green" />
+            </div>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
