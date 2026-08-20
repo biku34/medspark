@@ -64,7 +64,15 @@ export async function geminiJson(call: AiCall, model = MODELS.geminiText): Promi
             // Deterministic: this is extraction, not writing.
             temperature: 0,
             responseMimeType: "application/json",
-            maxOutputTokens: call.maxTokens ?? 2048,
+            maxOutputTokens: call.maxTokens ?? 8192,
+            /**
+             * Gemini 2.5 spends output tokens on internal reasoning, and they
+             * come out of the same budget as the answer. A real prescription
+             * blew the old 2048 cap on thinking alone and the JSON came back
+             * truncated mid-string. These tasks are transcription and lookup,
+             * not reasoning, so the budget is better spent on the answer.
+             */
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       },
@@ -74,13 +82,35 @@ export async function geminiJson(call: AiCall, model = MODELS.geminiText): Promi
     if (!res.ok) throw classify(res.status, body);
 
     let text = "";
+    let finishReason = "";
     try {
       const json = JSON.parse(body) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{
+          finishReason?: string;
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
       };
-      text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      const candidate = json.candidates?.[0];
+      finishReason = candidate?.finishReason ?? "";
+      text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
     } catch {
       throw new AiError("Gemini returned unparseable envelope", res.status, true);
+    }
+
+    /**
+     * A truncated answer is not "bad JSON" — it is a budget problem, and
+     * saying so is the difference between a useful error and a confusing one.
+     * Retryable, because a second attempt may transcribe more tersely.
+     */
+    if (finishReason === "MAX_TOKENS") {
+      throw new AiError(
+        "The page was too dense to transcribe in one answer — try a tighter crop, or one page at a time.",
+        res.status,
+        true,
+      );
+    }
+    if (finishReason === "SAFETY" || finishReason === "PROHIBITED_CONTENT") {
+      throw new AiError("The provider declined to process this image.", res.status, false);
     }
     if (!text.trim()) throw new AiError("Gemini returned nothing", res.status, true);
 
@@ -104,7 +134,7 @@ export async function groqJson(call: AiCall, model = MODELS.groqText): Promise<A
       body: JSON.stringify({
         model,
         temperature: 0,
-        max_tokens: call.maxTokens ?? 2048,
+        max_tokens: call.maxTokens ?? 4096,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: call.system },

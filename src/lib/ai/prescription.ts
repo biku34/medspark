@@ -153,7 +153,7 @@ export async function readPrescription(image: {
         prompt:
           "Transcribe this prescription. Copy every medicine line verbatim into sourceText. Do not add anything that is not written.",
         image,
-        maxTokens: 2048,
+        maxTokens: 8192,
       },
       MODELS.vision,
     );
@@ -231,7 +231,7 @@ Return one entry per line you can match confidently, using its label (L1, L2, ..
   // Gemini's own mapping.
   try {
     const r = await geminiJson(
-      { system: MATCH_SYSTEM, prompt: matchPrompt, maxTokens: 1536 },
+      { system: MATCH_SYSTEM, prompt: matchPrompt, maxTokens: 4096 },
       MODELS.geminiText,
     );
     models.push(`${r.provider}:${r.model}`);
@@ -247,7 +247,7 @@ Return one entry per line you can match confidently, using its label (L1, L2, ..
   if (hasProvider("groq")) {
     try {
       const r = await groqJson(
-        { system: MATCH_SYSTEM, prompt: matchPrompt, maxTokens: 1536 },
+        { system: MATCH_SYSTEM, prompt: matchPrompt, maxTokens: 4096 },
         MODELS.groqText,
       );
       models.push(`${r.provider}:${r.model}`);

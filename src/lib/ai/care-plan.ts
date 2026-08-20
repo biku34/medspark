@@ -162,7 +162,7 @@ ${catalogueBlock}
 
 Read the attached document and draft the plan. Quote the document in "reads" for every medicine line.`,
         image: { mimeType: page.mimeType, base64: page.base64 },
-        maxTokens: 3072,
+        maxTokens: 8192,
       },
       MODELS.vision,
     );
