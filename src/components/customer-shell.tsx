@@ -129,9 +129,12 @@ export function CustomerHeader() {
         </div>
 
         {/* search rides the fold between the brand band and the page */}
+        {/* A search input that spans the whole window is hard to aim at and
+            looks like a form field rather than a search box. Capped, and it
+            sits under the promise it belongs to rather than centred. */}
         <div className="bg-brand-700 pb-2.5">
           <div className="mx-auto max-w-6xl px-3 sm:px-4">
-            <SearchSuggest />
+            <SearchSuggest className="lg:max-w-2xl" />
           </div>
         </div>
       </header>

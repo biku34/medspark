@@ -146,7 +146,7 @@ function CategoryInner({ slug }: { slug: string }) {
                       className="flex aspect-[4/3] items-center justify-center rounded-xl transition-transform group-hover:-translate-y-0.5 group-active:scale-95"
                       style={{ background: paletteFor(c.id).well }}
                     >
-                      <CategoryArt id={c.id} size={52} />
+                      <CategoryArt id={c.id} className="h-[58%] w-auto" />
                     </span>
                     <span className="mt-1.5 text-[13px] font-extrabold leading-tight text-ink-900">
                       {c.name}

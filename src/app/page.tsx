@@ -104,11 +104,14 @@ export default function HomePage() {
         <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-6 lg:grid-cols-8">
           {SHELF_CATEGORIES.slice(0, 8).map((c) => (
             <Link key={c.id} href={`/category/wellness?sub=${c.id}`} className="group">
+              {/* The glyph is sized as a fraction of the tile, not in pixels.
+                  A fixed 46px looked right in an 80px tile on a phone and like
+                  a speck in the 149px tile the same grid produces at 1900px. */}
               <span
                 className="flex aspect-square items-center justify-center rounded-xl transition-transform group-active:scale-95"
                 style={{ background: paletteFor(c.id).well }}
               >
-                <CategoryArt id={c.id} size={46} />
+                <CategoryArt id={c.id} className="h-[52%] w-[52%]" />
               </span>
               <span className="mt-1.5 block text-center text-[11px] font-semibold leading-tight text-ink-700">
                 {c.name}
