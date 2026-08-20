@@ -210,7 +210,7 @@ export default function ServiceBookingPage({
   return (
     <CustomerShell wide>
       {/* ------------------------------ header ----------------------------- */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 to-brand-500 p-5 text-white sm:p-8">
+      <section className="overflow-hidden rounded-xl bg-brand-600 p-4 text-white sm:p-6">
         <span className="text-3xl sm:text-4xl">{meta.emoji}</span>
         <h1 className="mt-2 text-xl font-bold leading-tight sm:text-3xl">{meta.label}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-50">
@@ -232,7 +232,7 @@ export default function ServiceBookingPage({
       </section>
 
       {/* --------------------- advance booking notice ---------------------- */}
-      <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
+      <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3">
         <CalendarDays size={18} className="mt-0.5 shrink-0 text-amber-600" />
         <p className="text-sm text-amber-900">
           <strong>Advance booking required: minimum {settings.minAdvanceDays} day.</strong>{" "}
@@ -242,7 +242,7 @@ export default function ServiceBookingPage({
       </div>
 
       {serviceType === "NURSING" && (
-        <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 p-3.5">
+        <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-red-300 bg-red-50 p-3">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600" />
           <p className="text-xs leading-relaxed text-red-900">
             <strong>Not emergency care.</strong> Home nursing assistance supports recovery and

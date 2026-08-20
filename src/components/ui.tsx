@@ -21,19 +21,18 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "success" | "outli
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm shadow-brand-600/20",
+  primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
   secondary: "bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200",
   ghost: "bg-transparent text-ink-600 hover:bg-ink-100",
   danger: "bg-red-600 text-white hover:bg-red-700",
-  success: "bg-emerald-600 text-white hover:bg-emerald-700",
+  success: "bg-brand-600 text-white hover:bg-brand-700",
   outline: "bg-white text-ink-700 border border-ink-300 hover:border-ink-400 hover:bg-ink-50",
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "text-sm px-3 py-1.5 gap-1.5 rounded-lg",
-  md: "text-sm px-4 py-2.5 gap-2 rounded-xl",
-  lg: "text-base px-5 py-3.5 gap-2 rounded-xl font-semibold",
+  sm: "text-[13px] px-3 py-1.5 gap-1.5 rounded-md font-semibold",
+  md: "text-sm px-4 py-2 gap-1.5 rounded-lg font-semibold",
+  lg: "text-[15px] px-5 py-3 gap-2 rounded-lg font-bold",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -116,7 +115,7 @@ export function Card({
   children: ReactNode;
   as?: "div" | "section" | "li" | "article";
 }) {
-  return <As className={clsx("card p-4 sm:p-5", className)}>{children}</As>;
+  return <As className={clsx("card p-3.5 sm:p-4", className)}>{children}</As>;
 }
 
 export function SectionTitle({
@@ -130,9 +129,11 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-3">
-      <div>
-        <h2 className="text-lg font-semibold text-ink-900 sm:text-xl">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p>}
+      <div className="min-w-0">
+        <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900 sm:text-xl">
+          {title}
+        </h2>
+        {subtitle && <p className="mt-0.5 text-[13px] text-ink-500">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -169,7 +170,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap",
         TONES[tone],
         className,
       )}
@@ -228,7 +229,7 @@ export function Field({
 }
 
 const inputBase =
-  "w-full rounded-xl border border-ink-300 bg-white px-3.5 py-2.5 text-[15px] text-ink-800 " +
+  "w-full rounded-lg border border-ink-300 bg-white px-3.5 py-2.5 text-[15px] text-ink-800 " +
   "placeholder:text-ink-400 transition-colors hover:border-ink-400 focus:border-brand-500";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
@@ -390,7 +391,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={clsx(
-          "relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl rise sm:rounded-3xl",
+          "relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl rise sm:rounded-xl",
           wide ? "sm:max-w-3xl" : "sm:max-w-lg",
         )}
       >
@@ -431,7 +432,7 @@ export function Tabs<T extends string>({
           key={t.id}
           onClick={() => onChange(t.id)}
           className={clsx(
-            "flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+            "flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-colors",
             active === t.id
               ? "bg-ink-900 text-white"
               : "bg-white text-ink-600 border border-ink-200 hover:bg-ink-50",
@@ -470,7 +471,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-ink-300 bg-white/60 px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-ink-300 bg-white px-6 py-10 text-center">
       {icon && <div className="mb-3 text-ink-300">{icon}</div>}
       <p className="text-base font-semibold text-ink-800">{title}</p>
       {body && <p className="mt-1 max-w-sm text-sm text-ink-500">{body}</p>}
@@ -497,15 +498,15 @@ export function Stat({
   icon?: ReactNode;
 }) {
   return (
-    <div className="surface p-4">
+    <div className="surface p-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-ink-500">{label}</p>
         {icon && (
           <span className={clsx("rounded-lg border p-1.5", TONES[tone])}>{icon}</span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-ink-900">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-ink-500">{hint}</p>}
+      <p className="mt-1.5 text-[22px] font-extrabold tabular-nums leading-none text-ink-900">{value}</p>
+      {hint && <p className="mt-1 text-[11px] text-ink-500">{hint}</p>}
     </div>
   );
 }

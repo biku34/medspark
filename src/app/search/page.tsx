@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PackageSearch, Search, SlidersHorizontal } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
-import { MedicineCard } from "@/components/medicine-card";
+import { ProductCard, ProductGrid } from "@/components/product-card";
 import { useApp } from "@/components/providers";
 import { Button, EmptyState, Input, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
@@ -140,10 +140,20 @@ function SearchInner() {
           : `${filtered.length} ${filtered.length === 1 ? "result" : "results"}${initial ? ` for “${initial}”` : ""} near ${origin.locality}, ${origin.city}`}
       </p>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-44" />)
-          : filtered.map((r) => <MedicineCard key={r.medicine.id} result={r} />)}
+      <div className="mt-3">
+        {loading ? (
+          <ProductGrid>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} className="h-64" />
+            ))}
+          </ProductGrid>
+        ) : (
+          <ProductGrid>
+            {filtered.map((r) => (
+              <ProductCard key={r.medicine.id} result={r} />
+            ))}
+          </ProductGrid>
+        )}
       </div>
 
       {!loading && filtered.length === 0 && (

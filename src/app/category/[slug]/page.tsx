@@ -4,7 +4,7 @@ import { Suspense, use, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Leaf, LayoutGrid, Pill, Search, Stethoscope } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
-import { MedicineCard } from "@/components/medicine-card";
+import { ProductCard, ProductGrid } from "@/components/product-card";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import { Badge, EmptyState, Input, SectionTitle, Skeleton } from "@/components/ui";
@@ -125,13 +125,13 @@ function CategoryInner({ slug }: { slug: string }) {
           </p>
 
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
               {Array.from({ length: 12 }).map((_, i) => (
                 <Skeleton key={i} className="h-36" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
               {SHELF_CATEGORIES.map((c) => {
                 const list = grouped.get(c.id) ?? [];
                 const inStock = list.filter((r) => r.available).length;
@@ -139,10 +139,10 @@ function CategoryInner({ slug }: { slug: string }) {
                   <button
                     key={c.id}
                     onClick={() => goto(c.id)}
-                    className={`flex flex-col rounded-2xl border p-3.5 text-left transition-transform hover:-translate-y-0.5 sm:p-4 ${c.tone}`}
+                    className={`flex flex-col rounded-lg border p-3 text-left transition-transform hover:-translate-y-0.5 ${c.tone}`}
                   >
                     <span className="text-3xl sm:text-4xl">{c.emoji}</span>
-                    <span className="mt-2 text-sm font-semibold leading-tight text-ink-900">
+                    <span className="mt-1.5 text-[13px] font-bold leading-tight text-ink-900">
                       {c.name}
                     </span>
                     <span className="mt-0.5 text-[11px] leading-snug text-ink-500">
@@ -163,7 +163,7 @@ function CategoryInner({ slug }: { slug: string }) {
             </div>
           )}
 
-          <p className="mt-6 rounded-2xl bg-ink-100 p-4 text-xs text-ink-500">
+          <p className="mt-6 rounded-lg bg-ink-100 p-3.5 text-[12px] text-ink-500">
             Prescription medicines are not listed here. They follow a separate route —
             upload your prescription and a registered pharmacist verifies it before any
             pharmacy can dispense.
@@ -238,22 +238,22 @@ function CategoryInner({ slug }: { slug: string }) {
             </div>
 
             {loading ? (
-              <div className="grid gap-3 xl:grid-cols-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-44" />
+              <ProductGrid>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-64" />
                 ))}
-              </div>
+              </ProductGrid>
             ) : shown.length === 0 ? (
               <EmptyState
                 title={filter ? "Nothing matches that search" : "No products here yet"}
                 body="Try another category, or search the full catalogue."
               />
             ) : (
-              <div className="grid gap-3 xl:grid-cols-2">
+              <ProductGrid>
                 {shown.map((r) => (
-                  <MedicineCard key={r.medicine.id} result={r} />
+                  <ProductCard key={r.medicine.id} result={r} />
                 ))}
-              </div>
+              </ProductGrid>
             )}
           </div>
         </div>
@@ -284,11 +284,11 @@ function CategoryInner({ slug }: { slug: string }) {
         </div>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <ProductGrid>
         {loading
-          ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44" />)
-          : results.map((r) => <MedicineCard key={r.medicine.id} result={r} />)}
-      </div>
+          ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-64" />)
+          : results.map((r) => <ProductCard key={r.medicine.id} result={r} />)}
+      </ProductGrid>
 
       {!loading && results.length === 0 && (
         <EmptyState title="Nothing in this category yet" body="Check back shortly." />

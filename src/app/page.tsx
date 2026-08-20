@@ -4,130 +4,38 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowRight,
-  Bike,
-  CalendarDays,
-  Check,
   ChevronRight,
-  ClipboardList,
   Clock3,
   FileText,
-  HeartPulse,
-  Leaf,
-  MapPin,
-  Package,
-  Pill,
   RotateCcw,
-  Search,
   ShieldCheck,
-  Stethoscope,
   Store,
   Upload,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
-import { BRAND, ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
-import { Badge, Button, Card, LinkButton, SectionTitle } from "@/components/ui";
+import { ProductCard, ProductGrid } from "@/components/product-card";
 import { MiniTracker } from "@/components/order-tracker";
 import { api } from "@/lib/client";
 import { ORDER_LABELS, type MedicineSearchResult, type Order } from "@/lib/types";
-import { dayLabel, inr } from "@/lib/utils";
+import { SHELF_CATEGORIES } from "@/lib/shelf";
+import { inr } from "@/lib/utils";
 
-const QUICK_ACTIONS = [
-  {
-    href: "/search",
-    label: "Search medicines",
-    hint: "By name or salt",
-    icon: Search,
-    tone: "bg-brand-50 text-brand-700",
-  },
-  {
-    href: "/prescriptions/upload",
-    label: "Upload Prescription",
-    hint: "Pharmacist verified",
-    icon: Upload,
-    tone: "bg-amber-50 text-amber-700",
-  },
-  {
-    href: "/category/otc",
-    label: "OTC Medicines",
-    hint: "No prescription",
-    icon: Pill,
-    tone: "bg-emerald-50 text-emerald-700",
-  },
-  {
-    href: "/category/prescription",
-    label: "Prescription Medicines",
-    hint: "℞ verification required",
-    icon: Stethoscope,
-    tone: "bg-violet-50 text-violet-700",
-  },
-  {
-    href: "/category/wellness",
-    label: "Health & Wellness",
-    hint: "Shop by category",
-    icon: Leaf,
-    tone: "bg-sky-50 text-sky-700",
-  },
-  {
-    href: "/orders",
-    label: "My Orders",
-    hint: "Track & reorder",
-    icon: Package,
-    tone: "bg-ink-100 text-ink-700",
-  },
-];
-
-/** The two scheduled home-visit services, alongside medicine delivery. */
-const HOME_SERVICES = [
-  {
-    href: "/services/physiotherapy",
-    emoji: "🧑‍⚕️",
-    title: "Physiotherapy",
-    blurb: "Professional physiotherapy at home",
-    ctaLabel: "Book a Visit",
-    fromRate: 500,
-    card: "border-brand-200 bg-brand-50/50",
-    cta: "bg-brand-600 group-hover:bg-brand-700",
-    points: [
-      "Verified physiotherapists with council registration",
-      "Post-op, back & knee pain, stroke and mobility rehab",
-      "Choose your therapist, date and time slot",
-    ],
-  },
-  {
-    href: "/services/nursing",
-    emoji: "👩‍⚕️",
-    title: "Nursing Assistance",
-    blurb: "Qualified nursing support at home",
-    ctaLabel: "Book Nursing Help",
-    fromRate: 300,
-    card: "border-violet-200 bg-violet-50/50",
-    cta: "bg-violet-600 group-hover:bg-violet-700",
-    points: [
-      "Post-hospitalisation and elderly care support",
-      "Vitals monitoring, wound care and patient assistance",
-      "Shifts from a few hours to full-day cover",
-    ],
-  },
-];
-
-const AUDIENCE = [
-  "Hostel & PG residents",
-  "Senior citizens",
-  "Working professionals",
-  "Women ordering at night",
-  "Family in another city",
-  "Travellers & tourists",
-  "Limited mobility",
-  "Anyone who can't step out",
+/** Big, colourful entry points — the row of round category tiles. */
+const QUICK_TILES = [
+  { href: "/prescriptions/upload", label: "Upload Rx", emoji: "📄", tone: "bg-amber-100" },
+  { href: "/category/otc", label: "Medicines", emoji: "💊", tone: "bg-rose-100" },
+  { href: "/services/physiotherapy", label: "Physio", emoji: "🧑‍⚕️", tone: "bg-brand-100" },
+  { href: "/services/nursing", label: "Nursing", emoji: "👩‍⚕️", tone: "bg-violet-100" },
+  { href: "/category/wellness?sub=first-aid", label: "First Aid", emoji: "🩹", tone: "bg-red-100" },
+  { href: "/category/wellness?sub=devices", label: "Devices", emoji: "🩺", tone: "bg-indigo-100" },
 ];
 
 export default function HomePage() {
-  const { user, location, cart, addToCart, toast, geoQuery } = useApp();
+  const { user, origin, geoQuery, addToCart, toast } = useApp();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [popular, setPopular] = useState<MedicineSearchResult[]>([]);
+  const [shelf, setShelf] = useState<MedicineSearchResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -135,13 +43,15 @@ export default function HomePage() {
     (async () => {
       try {
         const [meds, ord] = await Promise.all([
-          api<{ results: MedicineSearchResult[] }>(`/api/medicines?q=&limit=8&category=otc&${geoQuery}`),
+          api<{ results: MedicineSearchResult[] }>(
+            `/api/medicines?q=&shelf=1&limit=400&${geoQuery}`,
+          ),
           user
             ? api<{ orders: Order[] }>("/api/orders").catch(() => ({ orders: [] }))
             : Promise.resolve({ orders: [] as Order[] }),
         ]);
         if (!alive) return;
-        setPopular(meds.results.slice(0, 6));
+        setShelf(meds.results);
         setOrders(ord.orders);
       } finally {
         if (alive) setLoading(false);
@@ -156,512 +66,315 @@ export default function HomePage() {
     (o) => !["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status),
   );
   const past = orders.filter((o) => o.status === "DELIVERED");
-  const reorderable = past.slice(0, 4);
+
+  const bySub = (id: string) => shelf.filter((r) => r.medicine.subcategory === id).slice(0, 10);
+  const bestsellers = shelf.filter((r) => r.available).slice(0, 10);
+  const painRelief = bySub("pain-relief");
+  const coldCough = bySub("cold-cough-fever");
 
   return (
     <CustomerShell wide>
       {/* ------------------------------------------------------------------ */}
-      {/* Hero                                                                */}
+      {/* Delivery promise strip                                              */}
       {/* ------------------------------------------------------------------ */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 p-6 text-white sm:p-9">
-        <Badge tone="brand" className="border-white/25 bg-white/15 text-white">
-          <ShieldCheck size={12} /> Verified local pharmacy network
-        </Badge>
-
-        <h1 className="mt-3 text-2xl font-bold leading-tight sm:text-4xl">
-          {BRAND.differentiator}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-brand-50 sm:text-base">
-          {BRAND.promise}
+      <div className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-[13px] text-brand-900">
+        <Clock3 size={15} strokeWidth={2.6} className="shrink-0 text-brand-700" />
+        <p className="min-w-0">
+          <strong className="font-extrabold">Medicines in 20 minutes</strong> from verified
+          pharmacies near {origin.locality}
         </p>
-        <p className="mt-2 text-sm font-semibold text-brand-100">
-          Medicines · Physiotherapy · Nursing — {BRAND.positioning}
-        </p>
-
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          <Button
-            size="lg"
-            variant="secondary"
-            className="border-transparent bg-white text-brand-700 hover:bg-brand-50"
-            icon={<Search size={18} />}
-            onClick={() => router.push("/search?q=Paracetamol%20650")}
-          >
-            Search medicines
-          </Button>
-          <LinkButton
-            href="/prescriptions/upload"
-            size="lg"
-            variant="secondary"
-            className="border-white/30 bg-white/15 text-white hover:bg-white/25"
-            icon={<Upload size={18} />}
-          >
-            Upload Prescription
-          </LinkButton>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {[
-            { icon: Store, title: "Nearby pharmacies", body: "You choose the pharmacy — never us." },
-            { icon: Clock3, title: "20–40 min delivery", body: "Real windows, honestly shown." },
-            { icon: ShieldCheck, title: "Pharmacist verified", body: "Every ℞ reviewed by a person." },
-          ].map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-2xl bg-white/10 p-3.5 backdrop-blur-sm">
-              <Icon size={20} className="text-brand-100" />
-              <p className="mt-1.5 text-sm font-semibold">{title}</p>
-              <p className="text-xs text-brand-100">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Location strip */}
-      <div className="mt-4 flex items-center gap-2 rounded-2xl border border-ink-200 bg-white px-4 py-3">
-        <MapPin size={18} className="shrink-0 text-brand-600" />
-        <p className="min-w-0 flex-1 text-sm">
-          {location ? (
-            <>
-              <span className="text-ink-500">Delivering to </span>
-              <strong className="text-ink-900">{location.locality}</strong>
-              {location.source === "gps" && (
-                <span className="ml-1.5 text-xs text-emerald-600">· detected</span>
-              )}
-            </>
-          ) : (
-            <span className="text-ink-600">Set your location to see pharmacies near you</span>
-          )}
-        </p>
-        <button
-          onClick={() =>
-            document.getElementById("dawaquick-location-trigger")?.click()
-          }
-          className="shrink-0 text-sm font-semibold text-brand-700 underline"
-        >
-          Change
-        </button>
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Quick actions                                                       */}
+      {/* Quick tiles                                                         */}
       {/* ------------------------------------------------------------------ */}
-      <section className="mt-6">
-        <SectionTitle title="What do you need today?" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {QUICK_ACTIONS.map(({ href, label, hint, icon: Icon, tone }) => (
-            <Link
-              key={href}
-              href={href}
-              className="card flex flex-col gap-2 p-4 transition-transform hover:-translate-y-0.5"
+      <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-6 sm:overflow-visible">
+        {QUICK_TILES.map((t) => (
+          <Link key={t.href} href={t.href} className="flex w-16 shrink-0 flex-col items-center gap-1 sm:w-auto">
+            <span
+              className={`flex h-16 w-16 items-center justify-center rounded-full text-3xl sm:h-[72px] sm:w-[72px] ${t.tone}`}
             >
-              <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${tone}`}>
-                <Icon size={22} />
+              {t.emoji}
+            </span>
+            <span className="text-center text-[11px] font-semibold leading-tight text-ink-700">
+              {t.label}
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Active order strip                                                  */}
+      {/* ------------------------------------------------------------------ */}
+      {active.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {active.map((o) => (
+            <Link
+              key={o.id}
+              href={`/orders/${o.id}`}
+              className="block rounded-lg border border-brand-200 bg-white p-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-extrabold text-ink-900">
+                    {ORDER_LABELS[o.status]}
+                  </p>
+                  <p className="truncate text-[11px] text-ink-500">
+                    {o.code} · {o.pharmacyName}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-md bg-brand-600 px-2 py-1 text-[11px] font-bold text-white">
+                  {o.etaMinFrom}–{o.etaMinTo} min
+                </span>
+              </div>
+              <div className="mt-2">
+                <MiniTracker status={o.status} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Prescription banner                                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <Link
+        href="/prescriptions/upload"
+        className="mt-3 flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 to-amber-300 p-3.5"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/70 text-2xl">
+          📄
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-extrabold leading-tight text-amber-950">
+            Have a doctor&apos;s prescription?
+          </span>
+          <span className="block text-[12px] leading-tight text-amber-900">
+            Upload it — a licensed pharmacist verifies before delivery
+          </span>
+        </span>
+        <ChevronRight size={20} className="shrink-0 text-amber-900" />
+      </Link>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Shop by category                                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mt-5">
+        <div className="mb-2.5 flex items-end justify-between">
+          <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
+            Shop by category
+          </h2>
+          <Link href="/category/wellness" className="text-[13px] font-bold text-brand-700">
+            See all
+          </Link>
+        </div>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+          {SHELF_CATEGORIES.slice(0, 8).map((c) => (
+            <Link
+              key={c.id}
+              href={`/category/wellness?sub=${c.id}`}
+              className={`flex flex-col items-center gap-1 rounded-lg border p-2 ${c.tone}`}
+            >
+              <span className="text-2xl sm:text-3xl">{c.emoji}</span>
+              <span className="text-center text-[10px] font-semibold leading-tight text-ink-700">
+                {c.name}
               </span>
-              <span className="text-sm font-semibold text-ink-900">{label}</span>
-              <span className="text-xs text-ink-500">{hint}</span>
             </Link>
           ))}
         </div>
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Healthcare at Your Doorstep — home visit services                    */}
+      {/* Product rails                                                       */}
       {/* ------------------------------------------------------------------ */}
-      <section className="mt-8">
-        <SectionTitle
-          title="Healthcare at Your Doorstep"
-          subtitle="Qualified professionals who come to you — scheduled home visits"
-        />
+      {[
+        { title: "Bestsellers near you", items: bestsellers, href: "/category/wellness" },
+        { title: "Pain relief", items: painRelief, href: "/category/wellness?sub=pain-relief" },
+        {
+          title: "Cold, cough & fever",
+          items: coldCough,
+          href: "/category/wellness?sub=cold-cough-fever",
+        },
+      ].map((rail) => (
+        <section key={rail.title} className="mt-5">
+          <div className="mb-2.5 flex items-end justify-between">
+            <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
+              {rail.title}
+            </h2>
+            <Link href={rail.href} className="text-[13px] font-bold text-brand-700">
+              See all
+            </Link>
+          </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {HOME_SERVICES.map((s) => (
+          {loading ? (
+            <div className="no-scrollbar flex gap-2.5 overflow-x-auto">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-64 w-40 shrink-0 animate-pulse rounded-lg bg-ink-100"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="no-scrollbar -mx-3 flex gap-2.5 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+              {rail.items.map((r) => (
+                <div key={r.medicine.id} className="w-[150px] shrink-0 sm:w-[168px]">
+                  <ProductCard result={r} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Home healthcare                                                     */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mt-6">
+        <h2 className="mb-1 text-[17px] font-extrabold tracking-tight text-ink-900">
+          Healthcare at your doorstep
+        </h2>
+        <p className="mb-2.5 text-[13px] text-ink-500">
+          Verified professionals who come to you · book 1 day ahead
+        </p>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {[
+            {
+              href: "/services/physiotherapy",
+              emoji: "🧑‍⚕️",
+              title: "Physiotherapy",
+              sub: "Post-op, back, knee & stroke rehab",
+              rate: 500,
+              bg: "from-brand-600 to-brand-500",
+            },
+            {
+              href: "/services/nursing",
+              emoji: "👩‍⚕️",
+              title: "Nursing at home",
+              sub: "Elderly care, wound care, vitals",
+              rate: 300,
+              bg: "from-violet-600 to-violet-500",
+            },
+          ].map((s) => (
             <Link
               key={s.href}
               href={s.href}
-              className={`group relative overflow-hidden rounded-3xl border p-5 transition-transform hover:-translate-y-0.5 sm:p-6 ${s.card}`}
+              className={`flex items-center gap-3 rounded-xl bg-gradient-to-r p-4 text-white ${s.bg}`}
             >
-              <span className="text-4xl">{s.emoji}</span>
-              <h3 className="mt-2 text-lg font-bold text-ink-900 sm:text-xl">{s.title}</h3>
-              <p className="mt-1 text-sm text-ink-600">{s.blurb}</p>
-
-              <ul className="mt-3 space-y-1">
-                {s.points.map((p) => (
-                  <li key={p} className="flex items-start gap-1.5 text-xs text-ink-600">
-                    <Check size={13} className="mt-0.5 shrink-0 text-brand-600" />
-                    {p}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-ink-900">
-                  From {inr(s.fromRate)}
-                  <span className="font-normal text-ink-500">/hour</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/20 text-2xl">
+                {s.emoji}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-extrabold leading-tight">{s.title}</span>
+                <span className="block text-[12px] leading-snug text-white/85">{s.sub}</span>
+                <span className="mt-1 block text-[12px] font-bold">
+                  From {inr(s.rate)}/hour
                 </span>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${s.cta}`}
-                >
-                  {s.ctaLabel}
-                  <ArrowRight size={15} />
-                </span>
-              </div>
+              </span>
+              <ChevronRight size={20} className="shrink-0" />
             </Link>
           ))}
-        </div>
-
-        <p className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900">
-          <CalendarDays size={16} className="shrink-0 text-amber-600" />
-          Advance booking required: minimum 1 day. Same-day home visits are not available.
-        </p>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Active order                                                        */}
-      {/* ------------------------------------------------------------------ */}
-      {active.length > 0 && (
-        <section className="mt-7">
-          <SectionTitle title="Active order" />
-          {active.map((o) => (
-            <Link key={o.id} href={`/orders/${o.id}`} className="card mb-3 block p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-ink-900">{ORDER_LABELS[o.status]}</p>
-                  <p className="mt-0.5 text-xs text-ink-500">
-                    {o.code} · {o.pharmacyName} · {o.items.length} item
-                    {o.items.length > 1 ? "s" : ""}
-                  </p>
-                </div>
-                <Badge tone="brand">
-                  <Bike size={12} /> {o.etaMinFrom}–{o.etaMinTo} min
-                </Badge>
-              </div>
-              <div className="mt-3">
-                <MiniTracker status={o.status} />
-              </div>
-              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-brand-700">
-                Track order <ChevronRight size={14} />
-              </p>
-            </Link>
-          ))}
-        </section>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Popular OTC                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-7">
-        <SectionTitle
-          title="Frequently ordered nearby"
-          subtitle="Availability reflects live stock at pharmacies around you"
-          action={
-            <Link href="/category/otc" className="text-sm font-semibold text-brand-700">
-              See all
-            </Link>
-          }
-        />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="card h-36 animate-pulse bg-ink-50" />
-              ))
-            : popular.map((r) => (
-                <div key={r.medicine.id} className="card flex flex-col p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink-50 text-2xl">
-                      {r.medicine.emoji}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/medicine/${r.medicine.id}`}
-                        className="line-clamp-2 text-sm font-semibold text-ink-900 hover:text-brand-700"
-                      >
-                        {r.medicine.name}
-                      </Link>
-                      <p className="mt-0.5 text-xs text-ink-500">{r.medicine.packLabel}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-ink-900">{inr(r.minPrice ?? r.medicine.mrp)}</p>
-                      <p className="text-[11px] text-ink-400">
-                        {r.available ? `${r.pharmacyCount} pharmacies` : "Unavailable nearby"}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      disabled={!r.available}
-                      onClick={() => {
-                        addToCart({
-                          medicineId: r.medicine.id,
-                          name: r.medicine.name,
-                          strength: r.medicine.strength,
-                          form: r.medicine.form,
-                          type: r.medicine.type,
-                          emoji: r.medicine.emoji,
-                          price: r.minPrice ?? r.medicine.mrp,
-                        });
-                        toast({ kind: "success", title: `${r.medicine.name} added to cart` });
-                      }}
-                    >
-                      {cart.some((l) => l.medicineId === r.medicine.id) ? "Added" : "Add"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
         </div>
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Recent orders + reorder                                             */}
+      {/* Reorder                                                             */}
       {/* ------------------------------------------------------------------ */}
       {user && past.length > 0 && (
-        <section className="mt-7 grid gap-5 lg:grid-cols-2">
-          <div>
-            <SectionTitle
-              title="Recent Orders"
-              action={
-                <Link href="/orders" className="text-sm font-semibold text-brand-700">
-                  All orders
-                </Link>
-              }
-            />
-            <ul className="space-y-2.5">
-              {past.slice(0, 3).map((o) => (
-                <li key={o.id}>
-                  <Link href={`/orders/${o.id}`} className="card flex items-center gap-3 p-3.5">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-50">
-                      <ClipboardList size={18} className="text-ink-500" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-ink-900">
-                        {o.items.map((i) => i.name).join(", ")}
-                      </span>
-                      <span className="block text-xs text-ink-500">
-                        {dayLabel(o.createdAt)} · {o.pharmacyName} · {inr(o.total)}
-                      </span>
-                    </span>
-                    <ChevronRight size={16} className="shrink-0 text-ink-400" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <section className="mt-6">
+          <div className="mb-2.5 flex items-end justify-between">
+            <h2 className="text-[17px] font-extrabold tracking-tight text-ink-900">
+              Order again
+            </h2>
+            <Link href="/orders" className="text-[13px] font-bold text-brand-700">
+              All orders
+            </Link>
           </div>
-
-          <div>
-            <SectionTitle title="Reorder Medicines" subtitle="One tap to fill your cart again" />
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {reorderable.map((o) => (
-                <div key={o.id} className="card flex flex-col justify-between gap-3 p-3.5">
-                  <div>
-                    <p className="line-clamp-2 text-sm font-medium text-ink-900">
-                      {o.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}
-                    </p>
-                    <p className="mt-0.5 text-xs text-ink-500">
-                      {dayLabel(o.createdAt)} · {inr(o.total)}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon={<RotateCcw size={14} />}
-                    onClick={() => {
-                      const rx = o.items.filter((i) => i.type === "RX");
-                      if (rx.length) {
-                        toast({
-                          kind: "info",
-                          title: "Prescription needed",
-                          body: "This order contains ℞ medicines — upload a prescription to reorder.",
-                        });
-                        router.push("/prescriptions/upload");
-                        return;
-                      }
-                      o.items.forEach((i) =>
-                        addToCart(
-                          {
-                            medicineId: i.medicineId,
-                            name: i.name,
-                            strength: i.strength,
-                            form: i.form,
-                            type: i.type,
-                            emoji: "💊",
-                            price: i.price,
-                          },
-                          i.qty,
-                        ),
-                      );
-                      toast({ kind: "success", title: "Added to cart" });
-                      router.push("/cart");
-                    }}
-                  >
-                    Reorder
-                  </Button>
+          <div className="no-scrollbar -mx-3 flex gap-2.5 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+            {past.slice(0, 6).map((o) => (
+              <div
+                key={o.id}
+                className="tile flex w-[190px] shrink-0 flex-col justify-between p-3"
+              >
+                <div>
+                  <p className="clamp-2 text-[13px] font-semibold text-ink-800">
+                    {o.items.map((i) => i.name).join(", ")}
+                  </p>
+                  <p className="mt-1 text-[11px] text-ink-500">
+                    {o.pharmacyName} · {inr(o.total)}
+                  </p>
                 </div>
-              ))}
-            </div>
+                <button
+                  onClick={() => {
+                    if (o.items.some((i) => i.type === "RX")) {
+                      toast({
+                        kind: "info",
+                        title: "Prescription needed",
+                        body: "Upload a prescription to reorder these medicines.",
+                      });
+                      router.push("/prescriptions/upload");
+                      return;
+                    }
+                    o.items.forEach((i) =>
+                      addToCart(
+                        {
+                          medicineId: i.medicineId,
+                          name: i.name,
+                          strength: i.strength,
+                          form: i.form,
+                          type: i.type,
+                          emoji: "💊",
+                          price: i.price,
+                        },
+                        i.qty,
+                      ),
+                    );
+                    toast({ kind: "success", title: "Added to cart" });
+                  }}
+                  className="mt-2 flex h-8 items-center justify-center gap-1 rounded-lg border border-brand-600 bg-brand-50 text-[12px] font-bold uppercase text-brand-700"
+                >
+                  <RotateCcw size={12} strokeWidth={3} /> Reorder
+                </button>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      {!user && (
-        <Card className="mt-7 flex flex-col items-start gap-3 border-brand-200 bg-brand-50/50 sm:flex-row sm:items-center">
-          <HeartPulse size={28} className="text-brand-600" />
-          <div className="flex-1">
-            <p className="font-semibold text-ink-900">Sign in to order and track deliveries</p>
-            <p className="text-sm text-ink-600">
-              Demo account: <code className="rounded bg-white px-1.5 py-0.5 text-xs">customer@dawaquick.app</code>{" "}
-              / <code className="rounded bg-white px-1.5 py-0.5 text-xs">demo1234</code>
-            </p>
+      {/* ------------------------------------------------------------------ */}
+      {/* Trust strip                                                         */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mt-6 grid grid-cols-3 gap-2">
+        {[
+          { icon: Store, title: "You pick the pharmacy", sub: "Never auto-assigned" },
+          { icon: ShieldCheck, title: "Pharmacist verified", sub: "Every prescription" },
+          { icon: FileText, title: "Licensed partners", sub: "Verified drug licence" },
+        ].map(({ icon: Icon, title, sub }) => (
+          <div key={title} className="rounded-lg border border-ink-200 bg-white p-3 text-center">
+            <Icon size={18} className="mx-auto text-brand-600" />
+            <p className="mt-1 text-[11px] font-bold leading-tight text-ink-800">{title}</p>
+            <p className="text-[10px] leading-tight text-ink-500">{sub}</p>
           </div>
-          <LinkButton href="/login" icon={<ArrowRight size={16} />}>
-            Sign in
-          </LinkButton>
-        </Card>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* How it works                                                        */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-8">
-        <SectionTitle
-          title="How DawaQuick works"
-          subtitle="Three services, each with its own clearly separated journey"
-        />
-
-        {/* 💊 Medicine delivery — two sub-journeys */}
-        <p className="mb-2 flex items-center gap-2 text-sm font-bold text-ink-900">
-          <span className="text-lg">💊</span> Medicine Delivery
-          <span className="font-normal text-ink-500">· rapid, on demand</span>
-        </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Card className="border-emerald-200 bg-emerald-50/40">
-            <div className="mb-2 flex items-center gap-2">
-              <Pill size={18} className="text-emerald-700" />
-              <h3 className="font-semibold text-emerald-900">OTC medicines</h3>
-            </div>
-            <ol className="space-y-1.5 text-sm text-emerald-900/85">
-              {["Search", "Select quantity", "Choose a nearby pharmacy", "Place order", "Delivery"].map(
-                (s, i) => (
-                  <li key={s} className="flex gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
-                      {i + 1}
-                    </span>
-                    {s}
-                  </li>
-                ),
-              )}
-            </ol>
-          </Card>
-          <Card className="border-amber-200 bg-amber-50/40">
-            <div className="mb-2 flex items-center gap-2">
-              <FileText size={18} className="text-amber-700" />
-              <h3 className="font-semibold text-amber-900">Prescription medicines</h3>
-            </div>
-            <ol className="space-y-1.5 text-sm text-amber-900/85">
-              {[
-                "Upload prescription",
-                "Pharmacist review",
-                "Customer verification call",
-                "Approval",
-                "Choose pharmacy → delivery",
-              ].map((s, i) => (
-                <li key={s} className="flex gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-600 text-[11px] font-bold text-white">
-                    {i + 1}
-                  </span>
-                  {s}
-                </li>
-              ))}
-            </ol>
-          </Card>
-        </div>
-        <ComplianceNote className="mt-3" />
-
-        {/* 🧑‍⚕️👩‍⚕️ Scheduled home visits */}
-        <p className="mb-2 mt-6 flex items-center gap-2 text-sm font-bold text-ink-900">
-          <span className="text-lg">🏠</span> Home Visits
-          <span className="font-normal text-ink-500">· scheduled, minimum 1 day ahead</span>
-        </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          {[
-            {
-              emoji: "🧑‍⚕️",
-              title: "Physiotherapy at home",
-              tone: "border-brand-200 bg-brand-50/40",
-              text: "text-brand-900",
-              dot: "bg-brand-600",
-              steps: [
-                "Select service",
-                "Choose date & time slot",
-                "Select duration",
-                "Provider assignment",
-                "Confirmed booking → home visit",
-              ],
-            },
-            {
-              emoji: "👩‍⚕️",
-              title: "Nursing help at home",
-              tone: "border-violet-200 bg-violet-50/40",
-              text: "text-violet-900",
-              dot: "bg-violet-600",
-              steps: [
-                "Select assistance type",
-                "Choose date & time slot",
-                "Select duration",
-                "Provider assignment",
-                "Confirmed booking → home visit",
-              ],
-            },
-          ].map((c) => (
-            <Card key={c.title} className={c.tone}>
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-lg">{c.emoji}</span>
-                <h3 className={`font-semibold ${c.text}`}>{c.title}</h3>
-              </div>
-              <ol className={`space-y-1.5 text-sm ${c.text}/85`}>
-                {c.steps.map((s, i) => (
-                  <li key={s} className="flex gap-2">
-                    <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${c.dot}`}
-                    >
-                      {i + 1}
-                    </span>
-                    {s}
-                  </li>
-                ))}
-              </ol>
-            </Card>
-          ))}
-        </div>
-        <p className="mt-3 rounded-xl border border-ink-200 bg-white p-3 text-xs text-ink-500">
-          Home-visit providers are credential-verified by DawaQuick before they can accept bookings.
-          Nursing assistance supports recovery and daily care — it is not a substitute for emergency
-          medical care or a doctor&apos;s consultation.
-        </p>
+        ))}
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Audience                                                            */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="mt-8 rounded-3xl border border-ink-200 bg-white p-5 sm:p-6">
-        <h2 className="text-lg font-semibold text-ink-900">Built for people who can&apos;t just step out</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          Large buttons, minimal steps, and no jargon — because the person ordering is often
-          unwell, elderly, or ordering for someone in another city.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {AUDIENCE.map((a) => (
-            <span
-              key={a}
-              className="rounded-full border border-ink-200 bg-ink-50 px-3 py-1.5 text-sm text-ink-700"
-            >
-              {a}
+      {!user && (
+        <Link
+          href="/login"
+          className="mt-4 flex items-center gap-3 rounded-lg border border-ink-200 bg-white p-3.5"
+        >
+          <Upload size={18} className="shrink-0 text-brand-600" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-bold text-ink-900">
+              Login to order and track deliveries
             </span>
-          ))}
-        </div>
-        <p className="mt-5 rounded-2xl bg-ink-900 p-4 text-sm text-ink-100">
-          <strong className="text-white">We are not replacing pharmacies.</strong> DawaQuick builds a
-          digital network of local pharmacies — the same trusted chemist near you, now reachable
-          in minutes.
-        </p>
-      </section>
+            <span className="block text-[11px] text-ink-500">
+              customer@dawaquick.app · demo1234
+            </span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-ink-400" />
+        </Link>
+      )}
     </CustomerShell>
   );
 }

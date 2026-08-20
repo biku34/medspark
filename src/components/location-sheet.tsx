@@ -171,8 +171,8 @@ export function LocationPermissionGate() {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-ink-900/50 backdrop-blur-[2px]" />
-      <div className="relative z-10 w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl rise sm:rounded-3xl">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
+      <div className="relative z-10 w-full max-w-md rounded-t-2xl bg-white p-6 shadow-2xl rise sm:rounded-xl">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-50">
           <MapPin size={28} className="text-brand-600" />
         </div>
         <h2 className="text-xl font-bold text-ink-900">Allow location access?</h2>

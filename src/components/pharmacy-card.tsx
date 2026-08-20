@@ -1,14 +1,12 @@
 "use client";
 
-import { Bike, CheckCircle2, Clock3, MapPin, XCircle } from "lucide-react";
+import { Bike, Check, Clock3, MapPin, Star, X } from "lucide-react";
 import type { PharmacyOffer } from "@/lib/types";
 import { inr } from "@/lib/utils";
-import { Badge, Button, Stars } from "./ui";
 
 /**
  * A pharmacy's offer for the customer's basket.
- *
- * The customer always picks the pharmacy — DawaQuick never auto-assigns one.
+ * The customer always picks — DawaQuick never auto-assigns a pharmacy.
  */
 export function PharmacyOfferCard({
   offer,
@@ -21,86 +19,109 @@ export function PharmacyOfferCard({
   selected?: boolean;
   busy?: boolean;
 }) {
-  const { pharmacy, distanceKm, etaMinFrom, etaMinTo, deliveryFee, itemsTotal, total, allAvailable, lines } =
-    offer;
+  const {
+    pharmacy,
+    distanceKm,
+    etaMinFrom,
+    etaMinTo,
+    deliveryFee,
+    itemsTotal,
+    total,
+    allAvailable,
+    lines,
+  } = offer;
 
   return (
     <article
       className={
-        "card p-4 transition-shadow " +
-        (selected ? "ring-2 ring-brand-500" : allAvailable ? "" : "opacity-75")
+        "rounded-xl border bg-white p-3.5 " +
+        (selected ? "border-brand-600 ring-1 ring-brand-600" : "border-ink-200")
       }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-ink-900">{pharmacy.name}</h3>
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-500">
-            <MapPin size={12} />
-            {distanceKm} km away · {pharmacy.locality}
+          <h3 className="truncate text-[15px] font-extrabold text-ink-900">{pharmacy.name}</h3>
+          <p className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-500">
+            <span className="flex items-center gap-0.5">
+              <MapPin size={11} /> {distanceKm} km
+            </span>
+            <span>·</span>
+            <span>{pharmacy.locality}</span>
           </p>
         </div>
-        <Stars value={pharmacy.rating} count={pharmacy.ratingCount} />
+        <span className="flex shrink-0 items-center gap-0.5 rounded-md bg-brand-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
+          <Star size={10} className="fill-white" />
+          {pharmacy.rating > 0 ? pharmacy.rating.toFixed(1) : "New"}
+        </span>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-xl bg-ink-50 p-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400">Medicine</p>
-          <p
-            className={
-              "mt-0.5 flex items-center gap-1 text-sm font-semibold " +
-              (allAvailable ? "text-emerald-700" : "text-red-600")
-            }
-          >
-            {allAvailable ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-            {allAvailable ? "Available" : "Partial"}
+      {/* the three numbers that actually drive the choice */}
+      <div className="mt-2.5 flex items-stretch divide-x divide-ink-200 rounded-lg bg-ink-50 text-center">
+        <div className="flex-1 px-2 py-1.5">
+          <p className="flex items-center justify-center gap-1 text-[13px] font-extrabold text-ink-900">
+            <Clock3 size={12} strokeWidth={3} className="text-brand-700" />
+            {etaMinFrom}–{etaMinTo}m
           </p>
+          <p className="text-[10px] text-ink-500">delivery</p>
         </div>
-        <div className="rounded-xl bg-ink-50 p-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400">Delivery</p>
-          <p className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink-800">
-            <Clock3 size={14} />
-            {etaMinFrom}–{etaMinTo} min
-          </p>
-        </div>
-        <div className="rounded-xl bg-ink-50 p-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400">Delivery fee</p>
-          <p className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-ink-800">
-            <Bike size={14} />
+        <div className="flex-1 px-2 py-1.5">
+          <p className="flex items-center justify-center gap-1 text-[13px] font-extrabold text-ink-900">
+            <Bike size={12} strokeWidth={3} className="text-ink-500" />
             {inr(deliveryFee)}
           </p>
+          <p className="text-[10px] text-ink-500">fee</p>
         </div>
-        <div className="rounded-xl bg-brand-50 p-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-brand-700">Total</p>
-          <p className="mt-0.5 text-sm font-bold text-brand-800">{inr(total)}</p>
+        <div className="flex-1 px-2 py-1.5">
+          <p className="text-[13px] font-extrabold text-brand-700">{inr(total)}</p>
+          <p className="text-[10px] text-ink-500">total</p>
         </div>
       </div>
 
-      {/* Per-item availability, so partial matches are honest about what's missing */}
-      <ul className="mt-3 space-y-1">
+      {/* per-item availability — honest about partial matches */}
+      <ul className="mt-2.5 space-y-1">
         {lines.map((l) => (
-          <li key={l.medicineId} className="flex items-center justify-between gap-2 text-xs">
-            <span className="min-w-0 truncate text-ink-600">
-              {l.name} × {l.qty}
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <span className="text-ink-500">{inr(l.price * l.qty)}</span>
+          <li key={l.medicineId} className="flex items-center justify-between gap-2 text-[12px]">
+            <span className="flex min-w-0 items-center gap-1.5">
               {l.available ? (
-                <Badge tone="green">In stock</Badge>
+                <Check size={12} strokeWidth={3} className="shrink-0 text-brand-600" />
               ) : (
-                <Badge tone="red">{l.stock > 0 ? `Only ${l.stock} left` : "Out of stock"}</Badge>
+                <X size={12} strokeWidth={3} className="shrink-0 text-red-500" />
+              )}
+              <span className="truncate text-ink-600">
+                {l.name} × {l.qty}
+              </span>
+            </span>
+            <span className="shrink-0 font-semibold text-ink-700">
+              {l.available ? (
+                inr(l.price * l.qty)
+              ) : (
+                <span className="text-red-500">
+                  {l.stock > 0 ? `only ${l.stock}` : "out of stock"}
+                </span>
               )}
             </span>
           </li>
         ))}
       </ul>
 
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-ink-100 pt-3">
-        <p className="text-xs text-ink-500">
-          Items {inr(itemsTotal)} + delivery {inr(deliveryFee)}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-[11px] text-ink-500">
+          Items {inr(itemsTotal)} + fee {inr(deliveryFee)}
         </p>
-        <Button onClick={onChoose} disabled={!allAvailable} loading={busy}>
-          {selected ? "Selected" : "Choose Pharmacy"}
-        </Button>
+        <button
+          onClick={onChoose}
+          disabled={!allAvailable || busy}
+          className={
+            "h-9 rounded-lg px-4 text-[13px] font-bold uppercase tracking-wide transition-colors " +
+            (allAvailable
+              ? selected
+                ? "bg-brand-700 text-white"
+                : "border border-brand-600 bg-brand-50 text-brand-700 hover:bg-brand-100"
+              : "cursor-not-allowed border border-ink-200 bg-ink-100 text-ink-400")
+          }
+        >
+          {selected ? "Selected" : allAvailable ? "Select" : "Unavailable"}
+        </button>
       </div>
     </article>
   );

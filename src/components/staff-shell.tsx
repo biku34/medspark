@@ -53,11 +53,11 @@ export function StaffShell({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-ink-50">
-      <header className="sticky top-0 z-30 border-b border-ink-200 bg-white">
+    <div className="flex min-h-dvh flex-col bg-[#f7f7f7]">
+      <header className="sticky top-0 z-30 border-b border-ink-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
           <Logo size="sm" href="/" />
-          <span className="rounded-full bg-ink-900 px-3 py-1 text-xs font-semibold text-white">
+          <span className="rounded-md bg-brand-600 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white">
             {ROLE_LABEL[role]}
           </span>
 
@@ -70,7 +70,7 @@ export function StaffShell({
                     key={n.href}
                     href={n.href}
                     className={clsx(
-                      "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium",
+                      "shrink-0 rounded-md px-3 py-1.5 text-[13px] font-bold",
                       active ? "bg-brand-50 text-brand-700" : "text-ink-600 hover:bg-ink-100",
                     )}
                   >

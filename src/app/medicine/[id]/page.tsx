@@ -3,11 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { ArrowLeft, BellRing, Clock3, Info, MapPin, ShieldAlert, Store, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  Clock3,
+  Minus,
+  Plus,
+  ShieldAlert,
+  ShieldCheck,
+  Store,
+  Upload,
+} from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
-import { Badge, Button, Card, EmptyState, KeyValue, QtyStepper, RxBadge, Skeleton } from "@/components/ui";
+import { EmptyState, KeyValue, Skeleton } from "@/components/ui";
 import { api, post } from "@/lib/client";
 import type { MedicineSearchResult } from "@/lib/types";
 import { inr } from "@/lib/utils";
@@ -15,10 +25,9 @@ import { inr } from "@/lib/utils";
 export default function MedicinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { addToCart, toast, user, geoQuery } = useApp();
+  const { addToCart, setQty, cart, toast, user, geoQuery } = useApp();
   const [data, setData] = useState<MedicineSearchResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [qty, setQty] = useState(1);
   const [notified, setNotified] = useState(false);
 
   useEffect(() => {
@@ -31,175 +40,188 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
   if (loading) {
     return (
       <CustomerShell>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-80" />
       </CustomerShell>
     );
   }
   if (!data) {
     return (
       <CustomerShell>
-        <EmptyState title="Medicine not found" action={<Link href="/search">Back to search</Link>} />
+        <EmptyState title="Product not found" body="Try searching for it instead." />
       </CustomerShell>
     );
   }
 
-  const { medicine: m, available, pharmacyCount, minPrice, maxPrice, nearestKm, fastestEta } = data;
+  const { medicine: m, available, pharmacyCount, minPrice, nearestKm, fastestEta } = data;
   const price = minPrice ?? m.mrp;
+  const hasDiscount = price < m.mrp;
+  const off = hasDiscount ? Math.round(((m.mrp - price) / m.mrp) * 100) : 0;
+  const line = cart.find((l) => l.medicineId === m.id);
 
   return (
     <CustomerShell>
       <button
         onClick={() => router.back()}
-        className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
+        className="mb-2 inline-flex items-center gap-1 text-[13px] font-semibold text-ink-600"
       >
-        <ArrowLeft size={16} /> Back
+        <ArrowLeft size={15} /> Back
       </button>
 
-      <Card>
-        <div className="flex gap-4">
-          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-ink-50 text-4xl">
-            {m.emoji}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold leading-tight text-ink-900">{m.name}</h1>
-            <p className="mt-1 text-sm text-ink-500">
-              {m.brand} · {m.form} · {m.strength}
-            </p>
-            <p className="text-sm text-ink-400">by {m.manufacturer}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <RxBadge type={m.type} />
-              {m.requiresColdChain && <Badge tone="blue">❄ Cold chain</Badge>}
-              {m.restricted && (
-                <Badge tone="red" icon={<ShieldAlert size={12} />}>
-                  Restricted drug
-                </Badge>
-              )}
-              {available ? <Badge tone="green">Available nearby</Badge> : <Badge tone="slate">Unavailable</Badge>}
-            </div>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+        {/* image */}
+        <div className="img-well relative flex aspect-square items-center justify-center rounded-xl border border-ink-200">
+          {hasDiscount && available && (
+            <span className="absolute left-0 top-3 rounded-r-md bg-offer-600 px-2 py-1 text-[12px] font-extrabold text-white">
+              {off}% OFF
+            </span>
+          )}
+          <span className="text-7xl">{m.emoji}</span>
         </div>
 
-        <div className="mt-4 border-t border-ink-100 pt-3">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-2xl font-bold text-ink-900">{inr(price)}</p>
-              <p className="text-xs text-ink-400">
-                per {m.packLabel}
-                {maxPrice && maxPrice !== minPrice && ` · up to ${inr(maxPrice)} at other pharmacies`}
-              </p>
-            </div>
-            {available && (
-              <div className="text-right text-xs text-ink-500">
-                <p className="flex items-center justify-end gap-1">
-                  <Store size={12} /> {pharmacyCount} pharmacies
-                </p>
-                {nearestKm !== null && (
-                  <p className="flex items-center justify-end gap-1">
-                    <MapPin size={12} /> nearest {nearestKm} km
-                  </p>
-                )}
-                {fastestEta !== null && (
-                  <p className="flex items-center justify-end gap-1">
-                    <Clock3 size={12} /> from {fastestEta} min
-                  </p>
-                )}
-              </div>
+        {/* buy box */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-ink-400">{m.brand}</p>
+          <h1 className="mt-0.5 text-[20px] font-extrabold leading-tight text-ink-900">
+            {m.name}
+          </h1>
+          <p className="mt-0.5 text-[13px] text-ink-500">
+            {m.packLabel} · {m.form}
+          </p>
+
+          {available && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-ink-600">
+              <span className="flex items-center gap-1 text-brand-700">
+                <Clock3 size={13} strokeWidth={3} /> {fastestEta} mins
+              </span>
+              <span className="flex items-center gap-1">
+                <Store size={13} /> {pharmacyCount} pharmacies
+              </span>
+              {nearestKm !== null && <span>nearest {nearestKm} km</span>}
+            </p>
+          )}
+
+          <div className="mt-3 flex items-end gap-2">
+            <span className="text-[24px] font-extrabold leading-none text-ink-900">
+              {inr(price)}
+            </span>
+            {hasDiscount && (
+              <>
+                <span className="text-[14px] text-ink-400 line-through">{inr(m.mrp)}</span>
+                <span className="pb-0.5 text-[13px] font-bold text-brand-700">{off}% off</span>
+              </>
             )}
           </div>
-        </div>
+          <p className="text-[11px] text-ink-400">Inclusive of all taxes</p>
 
-        {/* --------------------------- actions ---------------------------- */}
-        <div className="mt-4">
-          {m.restricted ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <strong>Not available through DawaQuick.</strong> This medicine is a scheduled /
-              habit-forming drug. It can only be dispensed in person by a pharmacist against a
-              valid original prescription, with the record-keeping the law requires.
-            </div>
-          ) : !available ? (
-            <div className="space-y-2.5">
-              <p className="font-medium text-ink-800">Currently unavailable in nearby pharmacies.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  icon={<BellRing size={16} />}
+          {/* action */}
+          <div className="mt-4">
+            {m.restricted ? (
+              <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-[13px] text-red-800">
+                <p className="flex items-center gap-1.5 font-bold">
+                  <ShieldAlert size={15} /> Not available for delivery
+                </p>
+                <p className="mt-1">
+                  This is a scheduled / habit-forming drug. It can only be dispensed in person by a
+                  pharmacist against a valid original prescription.
+                </p>
+              </div>
+            ) : !available ? (
+              <div className="space-y-2">
+                <p className="text-[13px] font-bold text-red-600">
+                  Out of stock at pharmacies near you
+                </p>
+                <button
                   disabled={notified}
                   onClick={async () => {
-                    if (!user) return toast({ kind: "info", title: "Sign in to get notified" });
+                    if (!user) return toast({ kind: "info", title: "Login to get notified" });
                     await post("/api/stock-alerts", { medicineId: m.id });
                     setNotified(true);
                     toast({ kind: "success", title: "We'll notify you when it's back" });
                   }}
+                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-ink-300 bg-white text-[14px] font-bold text-ink-700 disabled:opacity-60"
                 >
-                  {notified ? "You'll be notified" : "Notify me when available"}
-                </Button>
-                <Button variant="outline" onClick={() => router.push("/search")}>
-                  Search another medicine
-                </Button>
+                  <Bell size={15} strokeWidth={2.6} />
+                  {notified ? "We'll notify you" : "Notify me when available"}
+                </button>
               </div>
-            </div>
-          ) : m.type === "RX" ? (
-            <div className="space-y-3">
-              <ComplianceNote variant="short" />
-              <Button
-                size="lg"
-                full
-                icon={<Upload size={18} />}
-                onClick={() => router.push("/prescriptions/upload")}
+            ) : m.type === "RX" ? (
+              <Link
+                href="/prescriptions/upload"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 text-[15px] font-bold text-white"
               >
-                Upload prescription to order
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <QtyStepper value={qty} onChange={setQty} />
-              <Button
-                size="lg"
-                className="flex-1"
+                <Upload size={17} /> Upload prescription to order
+              </Link>
+            ) : line ? (
+              <div className="flex h-12 items-center justify-between rounded-lg bg-brand-600 px-2 text-white">
+                <button
+                  aria-label="Decrease quantity"
+                  onClick={() => setQty(m.id, line.qty - 1)}
+                  className="flex h-full w-12 items-center justify-center"
+                >
+                  <Minus size={18} strokeWidth={3} />
+                </button>
+                <span className="text-[16px] font-extrabold tabular-nums">{line.qty} in cart</span>
+                <button
+                  aria-label="Increase quantity"
+                  onClick={() => setQty(m.id, line.qty + 1)}
+                  className="flex h-full w-12 items-center justify-center"
+                >
+                  <Plus size={18} strokeWidth={3} />
+                </button>
+              </div>
+            ) : (
+              <button
                 onClick={() => {
-                  addToCart(
-                    {
-                      medicineId: m.id,
-                      name: m.name,
-                      strength: m.strength,
-                      form: m.form,
-                      type: m.type,
-                      emoji: m.emoji,
-                      price,
-                    },
-                    qty,
-                  );
-                  toast({ kind: "success", title: `${qty} × ${m.name} added` });
-                  router.push("/cart");
+                  addToCart({
+                    medicineId: m.id,
+                    name: m.name,
+                    strength: m.strength,
+                    form: m.form,
+                    type: m.type,
+                    emoji: m.emoji,
+                    price,
+                  });
+                  toast({ kind: "success", title: `${m.name} added to cart` });
                 }}
+                className="h-12 w-full rounded-lg bg-brand-600 text-[15px] font-bold uppercase tracking-wide text-white hover:bg-brand-700"
               >
-                Add to Cart · {inr(price * qty)}
-              </Button>
-            </div>
+                Add to cart
+              </button>
+            )}
+          </div>
+
+          {m.type === "RX" && !m.restricted && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-amber-50 p-2.5 text-[11px] text-amber-900">
+              <ShieldCheck size={13} className="mt-px shrink-0 text-amber-600" />
+              Dispensed only after a registered pharmacist verifies your prescription.
+            </p>
           )}
         </div>
-      </Card>
+      </div>
 
-      <Card className="mt-4">
-        <h2 className="mb-2 flex items-center gap-2 font-semibold text-ink-900">
-          <Info size={16} className="text-ink-400" /> About this medicine
-        </h2>
-        <p className="text-sm leading-relaxed text-ink-600">{m.description}</p>
+      {/* details */}
+      <div className="mt-5 rounded-xl border border-ink-200 bg-white p-4">
+        <h2 className="text-[15px] font-extrabold text-ink-900">Product details</h2>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-ink-600">{m.description}</p>
         <div className="mt-3 divide-y divide-ink-100">
-          <KeyValue label="Generic / salt" value={m.genericName} />
+          <KeyValue label="Salt / generic" value={m.genericName} />
           <KeyValue label="Strength" value={m.strength} />
           <KeyValue label="Dosage form" value={m.form} />
-          <KeyValue label="Pack" value={m.packLabel} />
-          <KeyValue label="Typical usage" value={m.usage} />
+          <KeyValue label="Pack size" value={m.packLabel} />
+          <KeyValue label="Manufacturer" value={m.manufacturer} />
+          <KeyValue label="How to use" value={m.usage} />
           <KeyValue
             label="Classification"
-            value={m.type === "OTC" ? "Over the counter" : "Prescription only (℞)"}
+            value={m.type === "OTC" ? "Over the counter" : "Prescription only"}
           />
         </div>
-        <p className="mt-3 rounded-xl bg-ink-50 p-3 text-xs text-ink-500">
-          Information shown is indicative and for demonstration only. Always follow your
-          doctor&apos;s advice and the pack insert. DawaQuick does not provide medical advice.
+        <p className="mt-3 rounded-lg bg-ink-100 p-3 text-[11px] text-ink-500">
+          Information shown is indicative. Always follow your doctor&apos;s advice and the pack
+          insert. DawaQuick does not provide medical advice.
         </p>
-      </Card>
+      </div>
+
+      {m.type === "RX" && <ComplianceNote className="mt-3" />}
     </CustomerShell>
   );
 }

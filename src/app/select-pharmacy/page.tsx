@@ -89,7 +89,7 @@ export default function SelectPharmacyPage() {
             key={s.id}
             onClick={() => setSort(s.id)}
             className={
-              "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors " +
+              "shrink-0 rounded-lg px-3 py-1.5 text-[13px] font-bold transition-colors " +
               (sort === s.id
                 ? "bg-ink-900 text-white"
                 : "border border-ink-200 bg-white text-ink-600 hover:bg-ink-50")
