@@ -127,9 +127,23 @@ export function titleCase(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Honorifics and post-nominals carry no identity, so they never become an initial. */
+const NAME_NOISE = /^(dr|sr|mr|mrs|ms|shri|smt|prof)\.?$/i;
+
+/**
+ * Initials for an avatar.
+ *
+ * Naively taking the first two words turns "Dr. Ankit Rawal (PT)" into "DA",
+ * which belongs to nobody. Strip the title and the qualification first.
+ */
 export function initials(name: string): string {
-  return name
-    .split(" ")
+  const parts = name
+    .replace(/\([^)]*\)/g, " ")
+    .split(/[\s.]+/)
+    .filter((w) => w.length > 0 && !NAME_NOISE.test(w));
+
+  const picked = parts.length ? parts : name.split(/\s+/);
+  return picked
     .slice(0, 2)
     .map((p) => p[0])
     .join("")

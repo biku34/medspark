@@ -8,6 +8,7 @@ import { CustomerShell } from "@/components/customer-shell";
 import { useApp } from "@/components/providers";
 import { ProductCard } from "@/components/product-card";
 import { CategoryArt, ProductArt, ServiceArt, paletteFor } from "@/components/art";
+import { HomeCareBand } from "@/components/home-care-band";
 import { api } from "@/lib/client";
 import type { MedicineSearchResult, Order } from "@/lib/types";
 import { SHELF_CATEGORIES } from "@/lib/shelf";
@@ -249,49 +250,7 @@ export default function HomePage() {
         );
       })}
 
-      {/* ================================================================== */}
-      {/* Home healthcare                                                     */}
-      {/* ================================================================== */}
-      <Rail title="Care at home" href="/bookings" linkLabel="My visits">
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {[
-            {
-              href: "/services/physiotherapy",
-              kind: "physio" as const,
-              title: "Physiotherapy",
-              sub: "Post-op, back, knee & stroke rehab",
-              rate: 500,
-            },
-            {
-              href: "/services/nursing",
-              kind: "nursing" as const,
-              title: "Nursing at home",
-              sub: "Elderly care, wound care, vitals",
-              rate: 300,
-            },
-          ].map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="tile flex items-center gap-3 p-3 hover:tile-hover"
-            >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-ink-50">
-                <ServiceArt kind={s.kind} size={40} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-extrabold leading-tight text-ink-900">
-                  {s.title}
-                </span>
-                <span className="block text-[12px] leading-snug text-ink-500">{s.sub}</span>
-                <span className="nums mt-1 block text-[12px] font-extrabold text-brand-700">
-                  From {inr(s.rate)}/hour
-                </span>
-              </span>
-              <ChevronRight size={18} className="shrink-0 text-ink-400" />
-            </Link>
-          ))}
-        </div>
-      </Rail>
+      <HomeCareBand />
 
       {/* ================================================================== */}
       {/* Reorder                                                             */}

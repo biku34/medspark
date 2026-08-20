@@ -2,7 +2,8 @@
 
 import { Award, BadgeCheck, Clock3, GraduationCap, Languages, MapPin } from "lucide-react";
 import type { ProviderOffer } from "@/lib/home-care";
-import { inr } from "@/lib/utils";
+import { initials, inr } from "@/lib/utils";
+import { SERVICE_PALETTE } from "./art";
 import { Badge, Button, Stars } from "./ui";
 
 /**
@@ -29,8 +30,16 @@ export function ProviderCard({
       }
     >
       <div className="flex items-start gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-2xl sm:h-14 sm:w-14 sm:text-3xl">
-          {p.emoji}
+        {/* Initials, not an emoji: this is a named professional about to walk
+            into someone's home, and a cartoon face undercuts that. */}
+        <span
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[15px] font-extrabold sm:h-14 sm:w-14 sm:text-[18px]"
+          style={{
+            background: SERVICE_PALETTE[p.type === "PHYSIO" ? "physio" : "nursing"].well,
+            color: SERVICE_PALETTE[p.type === "PHYSIO" ? "physio" : "nursing"].deep,
+          }}
+        >
+          {initials(p.name)}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
