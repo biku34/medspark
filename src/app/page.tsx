@@ -27,6 +27,8 @@ const QUICK_TILES = [
   { href: "/category/otc", label: "Medicines", emoji: "💊", tone: "bg-rose-100" },
   { href: "/services/physiotherapy", label: "Physio", emoji: "🧑‍⚕️", tone: "bg-brand-100" },
   { href: "/services/nursing", label: "Nursing", emoji: "👩‍⚕️", tone: "bg-violet-100" },
+  { href: "/care", label: "Care Plan", emoji: "🏥", tone: "bg-sky-100" },
+  { href: "/subscriptions", label: "Repeat", emoji: "🔁", tone: "bg-teal-100" },
   { href: "/category/wellness?sub=first-aid", label: "First Aid", emoji: "🩹", tone: "bg-red-100" },
   { href: "/category/wellness?sub=devices", label: "Devices", emoji: "🩺", tone: "bg-indigo-100" },
 ];
@@ -274,6 +276,66 @@ export default function HomePage() {
               <ChevronRight size={20} className="shrink-0" />
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Add-on services                                                     */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mt-6">
+        <h2 className="mb-1 text-[17px] font-extrabold tracking-tight text-ink-900">
+          More than delivery
+        </h2>
+        <p className="mb-2.5 text-[13px] text-ink-500">
+          Two things a chemist down the road cannot do for you
+        </p>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <Link
+            href="/care"
+            className="group flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition-colors hover:border-brand-400"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-2xl">
+              🏥
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-extrabold leading-tight text-ink-900">
+                Send us your reports
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-snug text-ink-600">
+                Discharge summary, lab report or prescription. A pharmacist reads it and plans the
+                medicines, nurse and physio visits for you to approve.
+              </span>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-extrabold text-brand-700">
+                Start a care plan <ChevronRight size={13} />
+              </span>
+            </span>
+          </Link>
+
+          <Link
+            href="/subscriptions"
+            className="group flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition-colors hover:border-brand-400"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-2xl">
+              🔁
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[15px] font-extrabold leading-tight text-ink-900">
+                  Repeat delivery
+                </span>
+                <span className="rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
+                  Save 5%
+                </span>
+              </span>
+              <span className="mt-0.5 block text-[12px] leading-snug text-ink-600">
+                Monthly tablets, supplements or pads — delivered on a schedule you set. Skip, pause
+                or cancel any time.
+              </span>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-extrabold text-brand-700">
+                Set one up <ChevronRight size={13} />
+              </span>
+            </span>
+          </Link>
         </div>
       </section>
 

@@ -53,6 +53,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     reason?: string;
     medicines?: PrescriptionMedicine[];
     call?: Partial<VerificationCall>;
+    /** Repeat dispensings the pharmacist is willing to authorise. */
+    refillsAuthorised?: number;
+    /** YYYY-MM-DD after which this prescription may no longer be dispensed. */
+    validUntil?: string;
   }>(req);
 
   const action = body?.action;
@@ -146,17 +150,48 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         return bad("Add at least one prescribed medicine before approving", 409);
       }
 
+      /* --------------------------------------------------------------- */
+      /* Repeat authorisation.                                            */
+      /*                                                                  */
+      /* A verified prescription is not an open-ended licence to dispense */
+      /* forever. The pharmacist says how many repeats they are willing   */
+      /* to cover and until when, and the repeat-delivery runner may only */
+      /* draw down against those two numbers.                             */
+      /* --------------------------------------------------------------- */
+      const refillsAuthorised = Math.max(
+        0,
+        Math.min(12, Math.round(Number(body.refillsAuthorised ?? 0))),
+      );
+      const validUntil =
+        typeof body.validUntil === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.validUntil)
+          ? body.validUntil
+          : undefined;
+
+      if (refillsAuthorised > 0 && !validUntil) {
+        return bad("Set an expiry date when authorising repeat dispensings", 422);
+      }
+      if (validUntil && validUntil <= new Date().toISOString().slice(0, 10)) {
+        return bad("The expiry date must be in the future", 422);
+      }
+
       const updated = await store.update<Prescription>("prescriptions", id, {
         status: "APPROVED",
         verificationNote: body.note.trim(),
         verifiedById: session.userId,
         verifiedByName: session.name,
+        refillsAuthorised,
+        refillsUsed: rx.refillsUsed ?? 0,
+        validUntil,
         reviewedAt: new Date().toISOString(),
       });
+
+      const repeatLine = refillsAuthorised
+        ? ` ${refillsAuthorised} repeat dispensing(s) authorised until ${validUntil}.`
+        : "";
       await notify(rx.customerId, {
         kind: "PRESCRIPTION",
         title: "Prescription verified ✓",
-        body: `${rx.ref} was verified by ${session.name}. You can now choose a nearby pharmacy.`,
+        body: `${rx.ref} was verified by ${session.name}. You can now choose a nearby pharmacy.${repeatLine}`,
         href: `/prescriptions/${rx.id}`,
       });
       return ok({ prescription: updated });

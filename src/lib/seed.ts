@@ -29,6 +29,9 @@ import {
 
 export { mockPrescriptionImage };
 
+import { buildCarePlans, buildCarePrescriptions, buildSubscriptions } from "./seed-care";
+import { CUSTOMER_HOMES } from "./seed-people";
+
 const now = () => new Date();
 const iso = (d: Date) => d.toISOString();
 const minutesAgo = (m: number) => iso(new Date(Date.now() - m * 60_000));
@@ -831,32 +834,7 @@ export const PHARMACIES: Pharmacy[] = [
 export const DEMO_PASSWORD = "demo1234";
 
 /** Where each demo customer lives — drives order distances and ETAs. */
-export const CUSTOMER_HOMES: Record<
-  string,
-  { address: string; locality: string; city: string; lat: number; lng: number }
-> = {
-  usr_aarav: {
-    address: "B-402, Shreenath Residency, Sector 11, Gandhinagar",
-    locality: "Sector 11",
-    city: "Gandhinagar",
-    lat: 23.227,
-    lng: 72.642,
-  },
-  usr_priya: {
-    address: "Flat 9, Sapphire Apartments, Navrangpura, Ahmedabad",
-    locality: "Navrangpura",
-    city: "Ahmedabad",
-    lat: 23.038,
-    lng: 72.56,
-  },
-  usr_rohan: {
-    address: "C-14, Suman Tower Road, Sector 11, Gandhinagar",
-    locality: "Sector 11",
-    city: "Gandhinagar",
-    lat: 23.2255,
-    lng: 72.6402,
-  },
-};
+export { CUSTOMER_HOMES };
 
 export const USERS: User[] = [
   {
@@ -1804,12 +1782,14 @@ export function buildSeed() {
     pharmacies: PHARMACIES.map((p) => ({ ...p })),
     inventory: buildInventory(),
     orders: buildOrders(),
-    prescriptions: buildPrescriptions(),
+    prescriptions: [...buildPrescriptions(), ...buildCarePrescriptions()],
     notifications: buildNotifications(),
     searchLogs: buildSearchLogs(),
     stockAlerts: [],
     providers: PROVIDERS.map((p) => ({ ...p })),
     bookings: buildBookings(settings),
     settings: [settings],
+    carePlans: buildCarePlans(),
+    subscriptions: buildSubscriptions(),
   };
 }

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   HeartPulse,
+  RefreshCw,
   IndianRupee,
   Plus,
   ShieldCheck,
@@ -13,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { QueueTabs, StaffShell } from "@/components/staff-shell";
-import { Metric, MetricRow, PanelTitle } from "@/components/ops";
+import { DataTable, Metric, MetricRow, PanelTitle, Pill } from "@/components/ops";
 import { useApp } from "@/components/providers";
 import { Donut, GroupedBars, RankedBars, Sparkline } from "@/components/charts";
 import {
@@ -36,8 +37,12 @@ import {
   ORDER_LABELS,
   SERVICE_META,
   bookingLabel,
+  CARE_PLAN_LABELS,
+  SUBSCRIPTION_LABELS,
+  type CarePlan,
   type Order,
   type Pharmacy,
+  type Subscription,
   type ServiceBooking,
   type ServiceProvider,
   type ServiceSettings,
@@ -50,6 +55,8 @@ import { dateTime, inr } from "@/lib/utils";
 
 type Tab =
   | "overview"
+  | "care"
+  | "repeats"
   | "pharmacies"
   | "pharmacists"
   | "orders"
@@ -62,6 +69,9 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
+  const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
+  const [repeats, setRepeats] = useState<Subscription[]>([]);
+  const [running, setRunning] = useState(false);
   const [staff, setStaff] = useState<User[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
@@ -111,7 +121,7 @@ export default function AdminDashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [s, p, u, o, pr, bk, st] = await Promise.all([
+      const [s, p, u, o, pr, bk, st, cp, sb] = await Promise.all([
         api<AdminStats>("/api/admin/stats"),
         api<{ pharmacies: Pharmacy[] }>("/api/pharmacies?all=1"),
         api<{ users: User[] }>("/api/users"),
@@ -119,6 +129,8 @@ export default function AdminDashboard() {
         api<{ providers: ServiceProvider[] }>("/api/providers?all=1"),
         api<{ bookings: ServiceBooking[] }>("/api/bookings"),
         api<{ settings: ServiceSettings }>("/api/settings"),
+        api<{ carePlans: CarePlan[] }>("/api/care-plans"),
+        api<{ subscriptions: Subscription[] }>("/api/subscriptions?run=0"),
       ]);
       setStats(s);
       setPharmacies(p.pharmacies);
@@ -127,6 +139,8 @@ export default function AdminDashboard() {
       setProviders(pr.providers);
       setBookings(bk.bookings);
       setSettings(st.settings);
+      setCarePlans(cp.carePlans);
+      setRepeats(sb.subscriptions);
       setBookingStats(await api<BookingAnalytics>("/api/admin/booking-stats"));
     } catch {
       /* guarded by shell */
@@ -193,6 +207,8 @@ export default function AdminDashboard() {
           { id: "pharmacists", label: "Pharmacists", count: t.pharmacists },
           { id: "orders", label: "Orders", count: orders.length },
           { id: "homecare", label: "Home care", count: providers.length },
+          { id: "care", label: "Care plans", count: carePlans.length },
+          { id: "repeats", label: "Repeats", count: repeats.length },
           { id: "analytics", label: "Analytics" },
         ]}
         active={tab}
@@ -230,7 +246,17 @@ export default function AdminDashboard() {
               <Metric label="Completed deliveries" value={t.completedDeliveries} tone="green" />
               <Metric label="OTC today" value={t.otcToday} />
               <Metric label="Prescription today" value={t.rxToday} tone="amber" />
-              <Metric label="Network health" value="Healthy" tone="green" />
+              <Metric
+                label="Care plans open"
+                value={carePlans.filter((c) => !["COMPLETED", "CANCELLED"].includes(c.status)).length}
+                tone="violet"
+              />
+              <Metric
+                label="Repeats active"
+                value={repeats.filter((r) => r.status === "ACTIVE").length}
+                hint={`${repeats.filter((r) => r.status === "AWAITING_RX").length} held for ℞`}
+                tone="green"
+              />
             </div>
           </div>
 
@@ -846,6 +872,213 @@ export default function AdminDashboard() {
       )}
 
       {/* ----------------------------- analytics ---------------------------- */}
+      {/* ----------------------------- care plans --------------------------- */}
+      {tab === "care" && (
+        <div className="space-y-3">
+          <MetricRow>
+            <Metric
+              label="Awaiting the care team"
+              value={carePlans.filter((c) =>
+                ["SUBMITTED", "IN_REVIEW", "CHANGES_REQUESTED"].includes(c.status),
+              ).length}
+              tone="amber"
+            />
+            <Metric
+              label="With the customer"
+              value={carePlans.filter((c) => c.status === "PLAN_READY").length}
+              tone="blue"
+            />
+            <Metric
+              label="Active"
+              value={carePlans.filter((c) => c.status === "ACTIVE").length}
+              tone="green"
+            />
+            <Metric
+              label="Approval rate"
+              value={
+                carePlans.filter((c) => ["PLAN_READY", "ACTIVE", "COMPLETED"].includes(c.status))
+                  .length
+                  ? `${Math.round(
+                      (carePlans.filter((c) => ["ACTIVE", "COMPLETED"].includes(c.status)).length /
+                        carePlans.filter((c) =>
+                          ["PLAN_READY", "ACTIVE", "COMPLETED"].includes(c.status),
+                        ).length) *
+                        100,
+                    )}%`
+                  : "—"
+              }
+              hint="of plans sent out"
+            />
+          </MetricRow>
+
+          <DataTable
+            head={["Plan", "Patient", "Care team", "Contents", "Status", "Scheduled"]}
+            empty={carePlans.length === 0}
+          >
+            {carePlans.map((c) => (
+              <tr key={c.id}>
+                <td className="px-3 py-2">
+                  <a
+                    href={`/pharmacist/care-plans/${c.id}`}
+                    className="font-mono text-[12px] font-bold text-brand-700 hover:underline"
+                  >
+                    {c.ref}
+                  </a>
+                  <p className="text-[11px] text-ink-500">{dateTime(c.createdAt)}</p>
+                </td>
+                <td className="px-3 py-2">
+                  <p className="font-semibold text-ink-900">{c.patientName}</p>
+                  <p className="text-[11px] text-ink-500">
+                    {c.condition ?? c.customerName}
+                  </p>
+                </td>
+                <td className="px-3 py-2 text-[12px] text-ink-600">
+                  {c.coordinatorName ?? "—"}
+                </td>
+                <td className="px-3 py-2 text-[12px] text-ink-600">
+                  {c.medicines.length}m · {c.visits.length}v · {c.followUps.length}f
+                </td>
+                <td className="px-3 py-2">
+                  <Pill
+                    tone={
+                      c.status === "ACTIVE"
+                        ? "green"
+                        : c.status === "PLAN_READY"
+                          ? "amber"
+                          : c.status === "CANCELLED"
+                            ? "red"
+                            : "blue"
+                    }
+                  >
+                    {CARE_PLAN_LABELS[c.status]}
+                  </Pill>
+                </td>
+                <td className="px-3 py-2 text-[12px] text-ink-600">
+                  {c.scheduled.orderIds.length + c.scheduled.bookingIds.length +
+                  c.scheduled.subscriptionIds.length
+                    ? `${c.scheduled.orderIds.length} ord · ${c.scheduled.subscriptionIds.length} rep · ${c.scheduled.bookingIds.length} vis`
+                    : "—"}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </div>
+      )}
+
+      {/* ---------------------------- repeat delivery ------------------------ */}
+      {tab === "repeats" && (
+        <div className="space-y-3">
+          <MetricRow>
+            <Metric
+              label="Active"
+              value={repeats.filter((r) => r.status === "ACTIVE").length}
+              tone="green"
+            />
+            <Metric
+              label="Held for ℞"
+              value={repeats.filter((r) => r.status === "AWAITING_RX").length}
+              tone="amber"
+              live={repeats.some((r) => r.status === "AWAITING_RX")}
+            />
+            <Metric
+              label="Due today or earlier"
+              value={
+                repeats.filter(
+                  (r) => r.status === "ACTIVE" && r.nextDate <= new Date().toISOString().slice(0, 10),
+                ).length
+              }
+              tone="blue"
+            />
+            <Metric
+              label="Deliveries so far"
+              value={repeats.reduce((s, r) => s + r.deliveriesMade, 0)}
+            />
+          </MetricRow>
+
+          <Card>
+            <PanelTitle
+              title="Run the due queue"
+              action={
+                <Button
+                  size="sm"
+                  loading={running}
+                  icon={<RefreshCw size={14} />}
+                  onClick={async () => {
+                    setRunning(true);
+                    try {
+                      const r = await post<{ processed: number; ordered: number; heldForPrescription: number }>(
+                        "/api/subscriptions/run",
+                        {},
+                      );
+                      toast({
+                        kind: "success",
+                        title: `${r.processed} processed`,
+                        body: `${r.ordered} ordered · ${r.heldForPrescription} held for a prescription`,
+                      });
+                      await load();
+                    } catch (e) {
+                      toast({ kind: "error", title: "Run failed", body: (e as Error).message });
+                    } finally {
+                      setRunning(false);
+                    }
+                  }}
+                >
+                  Run now
+                </Button>
+              }
+            />
+            <p className="text-[12px] leading-relaxed text-ink-600">
+              In production a Vercel Cron entry hits{" "}
+              <code className="rounded bg-ink-100 px-1 py-0.5 text-[11px]">
+                POST /api/subscriptions/run
+              </code>{" "}
+              each morning, authenticated with CRON_SECRET. Running it by hand here does exactly the
+              same thing: every schedule whose date has arrived raises an order, unless its
+              prescription has run out — those stop and ask the customer for a current one.
+            </p>
+          </Card>
+
+          <DataTable
+            head={["Schedule", "Customer", "Items", "Pharmacy", "Every", "Next", "Status"]}
+            empty={repeats.length === 0}
+          >
+            {repeats.map((r) => (
+              <tr key={r.id} className={r.status === "AWAITING_RX" ? "bg-amber-50/60" : undefined}>
+                <td className="px-3 py-2">
+                  <p className="font-mono text-[12px] font-bold text-ink-900">{r.ref}</p>
+                  <p className="text-[11px] text-ink-500">{r.deliveriesMade} delivered</p>
+                </td>
+                <td className="px-3 py-2 text-[12px] text-ink-700">{r.customerName}</td>
+                <td className="px-3 py-2">
+                  <p className="text-[12px] text-ink-800">
+                    {r.items.map((i) => i.name).join(", ")}
+                  </p>
+                  {r.type === "RX" && <Pill tone="amber">℞</Pill>}
+                </td>
+                <td className="px-3 py-2 text-[12px] text-ink-700">{r.pharmacyName}</td>
+                <td className="px-3 py-2 text-[12px] text-ink-600">{r.intervalDays}d</td>
+                <td className="px-3 py-2 text-[12px] font-semibold text-ink-800">{r.nextDate}</td>
+                <td className="px-3 py-2">
+                  <Pill
+                    tone={
+                      r.status === "ACTIVE"
+                        ? "green"
+                        : r.status === "AWAITING_RX"
+                          ? "amber"
+                          : r.status === "CANCELLED"
+                            ? "red"
+                            : "grey"
+                    }
+                  >
+                    {SUBSCRIPTION_LABELS[r.status]}
+                  </Pill>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </div>
+      )}
+
       {tab === "analytics" && (
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           <Card>

@@ -64,6 +64,7 @@ npm start
 | `TELEPHONY_API_KEY` | Placeholder | Pharmacist → customer verification calls. Simulated in-app. |
 | `OCR_API_KEY` | Placeholder | Prescription text extraction. Pharmacist enters/confirms lines. |
 | `BLOB_STORAGE_URL` / `_TOKEN` | Placeholder | Prescription file storage. Prototype stores data URLs. |
+| `CRON_SECRET` | No | Authenticates the Vercel Cron call that runs due repeat deliveries. |
 
 ### Going live on MongoDB Atlas + Vercel
 
@@ -278,6 +279,76 @@ and legally appropriate, following the treating doctor's instructions.
 
 ---
 
+## 4b. Add-on services
+
+Two services sit on top of delivery. Both were built for the same customer: someone managing an
+illness rather than buying a strip of paracetamol.
+
+### Care plans — send us your reports, we plan the rest
+
+A customer uploads what they already have — a **discharge summary**, a **lab report**, a
+**prescription** — and a pharmacist turns it into one plan: which medicines continue, which are
+new, which should stop, which nurse or physiotherapy visits to book, and what to re-check and
+when.
+
+| Stage | Who | What happens |
+| --- | --- | --- |
+| `SUBMITTED` | Customer | Documents uploaded. A prescription in the pile is forked into a real `Prescription` record and joins the normal verification queue. |
+| `IN_REVIEW` | Pharmacist | Claims the plan and builds it in `/pharmacist/care-plans/[id]`. |
+| `PLAN_READY` | Customer | Reads the plan. Nothing has been ordered or booked. |
+| `CHANGES_REQUESTED` | Customer → Pharmacist | Sent back with a note. |
+| `ACTIVE` | Customer approves | **Only now** does anything get created. |
+
+The heart of it is **medication reconciliation**. Every line carries an explicit verdict —
+`CONTINUE`, `NEW`, `DOSE_CHANGE`, `STOP` — because after a hospital stay that is the question the
+family is actually asking: *which of these do I still give him?* A `STOP` line is shown struck
+through with the reason, and is never delivered.
+
+Approval creates, in one step: an order for the deliverable medicines, a repeat schedule for the
+long-term ones, and one booking per visit date in each course. Three rules hold:
+
+1. **Nothing is scheduled until the customer approves.** The care team proposes; the customer
+   decides.
+2. **The customer still chooses the pharmacy.** Approval refuses without one — a care plan is not
+   a back door around the platform's core rule.
+3. **No gate is bypassed.** ℞ lines cannot even be *proposed* until the attached prescription is
+   pharmacist-verified, and home visits still honour the one-day advance rule.
+
+### Repeat delivery — the same medicines, on a schedule
+
+Weekly, fortnightly, monthly or a custom interval, from a pharmacy the customer picked, with a
+standing 5% subscriber discount. Skip one cycle, pause, resume, change frequency, change pharmacy,
+deliver early, or cancel.
+
+The interesting part is where it **stops itself**. Dispensing a Schedule H medicine over and over
+against one old prescription is a genuine compliance exposure, not a paperwork detail. So an ℞
+repeat is not "charge them monthly forever":
+
+- At approval the pharmacist sets **how many repeat dispensings** they authorise and **an expiry
+  date**. Both are recorded on the prescription (`refillsAuthorised`, `refillsUsed`, `validUntil`).
+- Each cycle spends exactly one authorised repeat.
+- When they run out — or the expiry passes, or the prescription is withdrawn — the schedule flips
+  to `AWAITING_RX`, raises no order, and asks the customer for a current prescription.
+- A restricted/scheduled medicine can never be put on a repeat at all.
+
+The customer sees this as a "repeats left: 2 of 6" meter rather than a surprise.
+
+**Running the schedule.** `POST /api/subscriptions/run` processes everything due. In production
+`vercel.json` points a Cron entry at it each morning, authenticated with `CRON_SECRET`; the
+prototype also runs it opportunistically whenever a customer opens their schedules, so the demo
+works without waiting for a cron window. Admin → Repeats has a **Run now** button.
+
+### Where the compliance gates actually live
+
+Three things now raise orders: a customer checking out, a repeat coming due, and an approved care
+plan. They all call `createOrder()` in `src/lib/order-service.ts`, which is the single place the
+restricted-medicine, prescription, refill, stock and service-radius checks exist. A gate enforced
+at checkout but skipped by the repeat runner would be worse than no gate, because nobody would be
+watching it. `createBooking()` in `src/lib/booking-service.ts` does the same job for the
+advance-notice and provider-coverage rules.
+
+---
+
 ## 5. Workflows
 
 ### Customer
@@ -426,6 +497,11 @@ dawaquick/
 | `PATCH /api/bookings/[id]` | role-checked | accept · reject · confirm · start_visit · complete · cancel · rate · assign |
 | `GET /api/settings` · `PATCH` | public / admin | home-visit pricing and booking rules |
 | `GET /api/admin/booking-stats` | admin | home-healthcare booking analytics |
+| `GET/POST /api/care-plans` | customer, pharmacist, admin | submit documents / care-team queue |
+| `GET/PATCH /api/care-plans/[id]` | role-checked | claim · save · propose · request_changes · **approve** · cancel · complete |
+| `GET/POST /api/subscriptions` | role-scoped | repeat schedules (**refill gate**) |
+| `PATCH /api/subscriptions/[id]` | customer, admin | pause · resume · skip_next · unskip · set_frequency · set_pharmacy · set_address · set_prescription · deliver_now · cancel |
+| `POST /api/subscriptions/run` | admin or `CRON_SECRET` | process every schedule that has come due |
 | `GET/POST /api/seed` | any | driver info / reset demo data |
 
 ---

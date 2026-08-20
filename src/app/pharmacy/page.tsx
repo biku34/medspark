@@ -8,6 +8,7 @@ import {
   MapPin,
   Package,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
   Star,
@@ -217,6 +218,12 @@ export default function PharmacyDashboard() {
                       <Pill tone={o.type === "RX" ? "amber" : "grey"}>
                         {o.type === "RX" ? "Rx" : "OTC"}
                       </Pill>
+                      {o.subscriptionId && (
+                        <Pill tone="violet">
+                          <RefreshCw size={9} strokeWidth={3} /> Repeat
+                        </Pill>
+                      )}
+                      {o.carePlanId && <Pill tone="blue">Care plan</Pill>}
                       {o.type === "RX" && (
                         <Pill tone="green">
                           <ShieldCheck size={9} strokeWidth={3} /> Verified
@@ -298,6 +305,11 @@ export default function PharmacyDashboard() {
                       {o.deliveryPartnerName ?? "No rider yet"}
                     </span>
                     <span className="ml-auto font-bold text-ink-900">
+                      {o.discount ? (
+                        <span className="mr-1 font-semibold text-brand-700">
+                          −{inr(o.discount)}
+                        </span>
+                      ) : null}
                       {inr(o.total)} · {o.paymentMode}
                     </span>
                   </div>

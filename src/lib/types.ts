@@ -172,6 +172,12 @@ export interface Order {
   history: StatusEvent[];
   deliveryPartnerId?: string;
   deliveryPartnerName?: string;
+  /** Set when a repeat-delivery schedule raised this order. */
+  subscriptionId?: string;
+  /** Subscriber saving taken off the subtotal. */
+  discount?: number;
+  /** Set when this order came out of an approved care plan. */
+  carePlanId?: string;
   createdAt: string;
 }
 
@@ -220,6 +226,17 @@ export interface Prescription {
   rejectionReason?: string;
   call?: VerificationCall;
   orderId?: string;
+  /**
+   * Repeat authorisation, set by the pharmacist at approval.
+   *
+   * Auto-refilling against an expired or already-spent prescription is a real
+   * compliance exposure, so a repeat delivery may only draw down against these
+   * two numbers and stops itself when either runs out.
+   */
+  refillsAuthorised?: number;
+  refillsUsed?: number;
+  /** YYYY-MM-DD — after this date the prescription can no longer be dispensed. */
+  validUntil?: string;
   createdAt: string;
   reviewedAt?: string;
 }
@@ -227,7 +244,7 @@ export interface Prescription {
 export interface Notification {
   id: string;
   userId: string;
-  kind: "ORDER" | "PRESCRIPTION" | "DELIVERY" | "STOCK";
+  kind: "ORDER" | "PRESCRIPTION" | "DELIVERY" | "STOCK" | "CARE_PLAN" | "REPEAT";
   title: string;
   body: string;
   href?: string;
@@ -502,3 +519,297 @@ export const PRESCRIPTION_LABELS: Record<PrescriptionStatus, string> = {
   APPROVED: "Verified ✓",
   REJECTED: "Rejected",
 };
+
+/* ========================================================================== */
+/* Health records & care plans                                                */
+/* ========================================================================== */
+
+export type HealthDocumentKind =
+  | "LAB_REPORT"
+  | "PRESCRIPTION"
+  | "DISCHARGE_SUMMARY"
+  | "OTHER";
+
+export const DOCUMENT_META: Record<
+  HealthDocumentKind,
+  { label: string; short: string; emoji: string; hint: string }
+> = {
+  LAB_REPORT: {
+    label: "Lab report",
+    short: "Lab",
+    emoji: "🧪",
+    hint: "Blood work, imaging, pathology — anything with results on it.",
+  },
+  PRESCRIPTION: {
+    label: "Prescription",
+    short: "℞",
+    emoji: "📝",
+    hint: "The doctor's prescription. Needed before we can dispense any ℞ medicine.",
+  },
+  DISCHARGE_SUMMARY: {
+    label: "Discharge summary",
+    short: "Discharge",
+    emoji: "🏥",
+    hint: "The hospital's summary sheet — it drives the whole recovery plan.",
+  },
+  OTHER: {
+    label: "Other document",
+    short: "Other",
+    emoji: "📄",
+    hint: "Anything else your care team should read.",
+  },
+};
+
+export interface HealthDocument {
+  id: string;
+  kind: HealthDocumentKind;
+  fileName: string;
+  mimeType: string;
+  /** data: URL for the prototype. Production stores an object-storage key. */
+  fileData: string;
+  note?: string;
+  uploadedAt: string;
+}
+
+export type CarePlanStatus =
+  | "SUBMITTED"
+  | "IN_REVIEW"
+  | "PLAN_READY"
+  | "CHANGES_REQUESTED"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export const CARE_PLAN_LABELS: Record<CarePlanStatus, string> = {
+  SUBMITTED: "Documents Received",
+  IN_REVIEW: "Care Team Reviewing",
+  PLAN_READY: "Plan Ready — Your Approval Needed",
+  CHANGES_REQUESTED: "Changes Requested",
+  ACTIVE: "Plan Active",
+  COMPLETED: "Plan Completed",
+  CANCELLED: "Plan Cancelled",
+};
+
+/** The happy path shown as a progress tracker to the customer. */
+export const CARE_PLAN_FLOW: CarePlanStatus[] = [
+  "SUBMITTED",
+  "IN_REVIEW",
+  "PLAN_READY",
+  "ACTIVE",
+  "COMPLETED",
+];
+
+/**
+ * Medication reconciliation outcome for one line.
+ *
+ * Reconciling the discharge summary against what the patient already takes is
+ * the single highest-value thing a pharmacist does after a hospital stay, so
+ * every medicine line carries its verdict explicitly.
+ */
+export type ReconciliationVerdict = "CONTINUE" | "NEW" | "DOSE_CHANGE" | "STOP";
+
+export const RECONCILIATION_META: Record<
+  ReconciliationVerdict,
+  { label: string; tone: "green" | "blue" | "amber" | "red" }
+> = {
+  CONTINUE: { label: "Continue as before", tone: "green" },
+  NEW: { label: "Newly started", tone: "blue" },
+  DOSE_CHANGE: { label: "Dose changed", tone: "amber" },
+  STOP: { label: "Stop taking", tone: "red" },
+};
+
+export interface CarePlanMedicine {
+  id: string;
+  /** Set when the care team matched the line to the catalogue. */
+  medicineId?: string;
+  name: string;
+  strength?: string;
+  /** "1-0-1 after food" */
+  dosage: string;
+  durationDays: number;
+  /** Units to deliver each cycle. */
+  qtyPerCycle: number;
+  type: MedicineType;
+  reconciliation: ReconciliationVerdict;
+  /** Care team suggests this line goes on a repeat delivery. */
+  repeat: boolean;
+  intervalDays?: number;
+  note?: string;
+}
+
+export interface CarePlanVisit {
+  id: string;
+  serviceType: ServiceType;
+  reason?: string;
+  assistanceTypes: string[];
+  hours: number;
+  /** Number of visits in the course, and the gap between them. */
+  visits: number;
+  everyDays: number;
+  /** YYYY-MM-DD — the care team's proposed first visit. */
+  firstDate: string;
+  slot: string;
+  note?: string;
+}
+
+export interface CarePlanFollowUp {
+  id: string;
+  label: string;
+  /** YYYY-MM-DD */
+  dueDate: string;
+  note?: string;
+}
+
+export interface CarePlanEvent {
+  status: CarePlanStatus;
+  at: string;
+  by?: string;
+  note?: string;
+}
+
+export interface CarePlan {
+  id: string;
+  ref: string; // CP-7K3D2
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+
+  patientName: string;
+  patientAge?: number;
+  condition?: string;
+  hospitalName?: string;
+  /** YYYY-MM-DD — present when this plan follows a hospital stay. */
+  dischargeDate?: string;
+  allergies?: string;
+  customerNote?: string;
+
+  documents: HealthDocument[];
+
+  status: CarePlanStatus;
+  coordinatorId?: string;
+  coordinatorName?: string;
+
+  /** The care team's plain-language summary, shown to the customer. */
+  summary?: string;
+  safetyNotes?: string;
+
+  medicines: CarePlanMedicine[];
+  visits: CarePlanVisit[];
+  followUps: CarePlanFollowUp[];
+
+  /** Prescription record raised from the uploaded ℞, once verified. */
+  prescriptionId?: string;
+  changeRequest?: string;
+  approvedAt?: string;
+
+  /** What the approval actually created. */
+  scheduled: {
+    orderIds: string[];
+    bookingIds: string[];
+    subscriptionIds: string[];
+  };
+
+  history: CarePlanEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ========================================================================== */
+/* Repeat delivery (subscriptions)                                            */
+/* ========================================================================== */
+
+export type RepeatFrequency = "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "CUSTOM";
+
+export const REPEAT_META: Record<RepeatFrequency, { label: string; days: number }> = {
+  WEEKLY: { label: "Every week", days: 7 },
+  FORTNIGHTLY: { label: "Every 2 weeks", days: 14 },
+  MONTHLY: { label: "Every month", days: 30 },
+  CUSTOM: { label: "Custom interval", days: 0 },
+};
+
+export type SubscriptionStatus =
+  | "ACTIVE"
+  | "PAUSED"
+  | "AWAITING_RX"
+  | "CANCELLED"
+  | "COMPLETED";
+
+export const SUBSCRIPTION_LABELS: Record<SubscriptionStatus, string> = {
+  ACTIVE: "Active",
+  PAUSED: "Paused",
+  AWAITING_RX: "Needs a fresh prescription",
+  CANCELLED: "Cancelled",
+  COMPLETED: "Finished",
+};
+
+/** Standing saving for committing to a repeat schedule. */
+export const REPEAT_DISCOUNT_PCT = 5;
+
+export interface SubscriptionItem {
+  medicineId: string;
+  name: string;
+  strength: string;
+  form: string;
+  qty: number;
+  type: MedicineType;
+}
+
+export interface SubscriptionEvent {
+  at: string;
+  event:
+    | "CREATED"
+    | "ORDER_PLACED"
+    | "SKIPPED"
+    | "PAUSED"
+    | "RESUMED"
+    | "CANCELLED"
+    | "RX_REQUIRED"
+    | "OUT_OF_STOCK"
+    | "UPDATED";
+  note?: string;
+  orderId?: string;
+}
+
+export interface Subscription {
+  id: string;
+  ref: string; // RD-8J2K4
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+
+  /** Chosen by the customer, exactly like a one-off order. Never auto-assigned. */
+  pharmacyId: string;
+  pharmacyName: string;
+
+  address: string;
+  locality: string;
+  lat: number;
+  lng: number;
+
+  items: SubscriptionItem[];
+  /** RX when any line needs a prescription — drives the refill gate. */
+  type: MedicineType;
+  prescriptionId?: string;
+
+  frequency: RepeatFrequency;
+  intervalDays: number;
+  /** YYYY-MM-DD */
+  startDate: string;
+  nextDate: string;
+  /** Customer asked to skip exactly one upcoming cycle. */
+  skipNext: boolean;
+
+  status: SubscriptionStatus;
+  paymentMode: "COD" | "UPI" | "CARD";
+  discountPct: number;
+
+  deliveriesMade: number;
+  lastOrderId?: string;
+  lastRunAt?: string;
+  /** Set when the plan that created this subscription is known. */
+  carePlanId?: string;
+
+  history: SubscriptionEvent[];
+  createdAt: string;
+  updatedAt: string;
+}

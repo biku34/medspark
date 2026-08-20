@@ -7,12 +7,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   ChevronRight,
-  FileText,
   HeartPulse,
   Home,
   LayoutGrid,
   LogIn,
   MapPin,
+  RefreshCw,
   Search,
   ShoppingCart,
   User as UserIcon,
@@ -155,8 +155,8 @@ export function CustomerHeader() {
 const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/category/wellness", label: "Categories", icon: LayoutGrid },
-  { href: "/prescriptions/upload", label: "Upload Rx", icon: FileText },
-  { href: "/bookings", label: "Visits", icon: HeartPulse },
+  { href: "/care", label: "Care", icon: HeartPulse },
+  { href: "/subscriptions", label: "Repeat", icon: RefreshCw },
   { href: "/profile", label: "Account", icon: UserIcon },
 ];
 

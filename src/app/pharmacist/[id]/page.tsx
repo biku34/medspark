@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ExternalLink,
   MessageSquare,
+  RefreshCw,
   Phone,
   PhoneOff,
   Plus,
@@ -68,6 +69,8 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   /* review state */
   const [meds, setMeds] = useState<PrescriptionMedicine[]>([]);
   const [note, setNote] = useState("Prescription verified. Customer details confirmed.");
+  const [refills, setRefills] = useState(0);
+  const [validUntil, setValidUntil] = useState("");
 
   /* modals */
   const [callOpen, setCallOpen] = useState(false);
@@ -186,7 +189,12 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   const approve = async () => {
     setBusy(true);
     try {
-      await patch(`/api/prescriptions/${rx.id}`, { action: "approve", note });
+      await patch(`/api/prescriptions/${rx.id}`, {
+        action: "approve",
+        note,
+        refillsAuthorised: refills,
+        validUntil: refills > 0 ? validUntil : undefined,
+      });
       toast({ kind: "success", title: "Prescription approved & released" });
       await load();
     } catch (e) {
@@ -432,13 +440,73 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                 <Textarea value={note} onChange={(e) => setNote(e.target.value)} />
               </Field>
 
+              {/* ------------------------------------------------------- */}
+              {/* Repeat authorisation.                                    */}
+              {/*                                                          */}
+              {/* Verifying a prescription releases one order. Authorising */}
+              {/* repeats lets the customer put it on an unattended        */}
+              {/* schedule, so it is a separate, deliberate decision with  */}
+              {/* an expiry attached — never an automatic consequence of   */}
+              {/* approval.                                                */}
+              {/* ------------------------------------------------------- */}
+              <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-ink-900">
+                  <RefreshCw size={14} className="text-ink-500" />
+                  Repeat dispensings
+                </p>
+                <p className="mt-0.5 text-xs text-ink-600">
+                  How many times may this be dispensed again without a fresh prescription?
+                </p>
+
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {[0, 1, 3, 6, 12].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setRefills(n)}
+                      className={
+                        "h-9 min-w-11 rounded-lg border px-2.5 text-sm font-bold transition-colors " +
+                        (refills === n
+                          ? "border-brand-600 bg-brand-600 text-white"
+                          : "border-ink-300 bg-white text-ink-700 hover:bg-ink-100")
+                      }
+                    >
+                      {n === 0 ? "None" : n}
+                    </button>
+                  ))}
+                </div>
+
+                {refills > 0 && (
+                  <div className="mt-2.5">
+                    <Field label="Valid until" required hint="No repeat is dispensed after this date.">
+                      <Input
+                        type="date"
+                        value={validUntil}
+                        min={new Date(Date.now() + 864e5).toISOString().slice(0, 10)}
+                        onChange={(e) => setValidUntil(e.target.value)}
+                      />
+                    </Field>
+                    {!validUntil && (
+                      <p className="mt-1 text-xs text-amber-700">
+                        Set an expiry date to authorise repeats.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {refills === 0 && (
+                  <p className="mt-2 text-xs text-ink-500">
+                    No repeats: the customer must upload a fresh prescription for each order.
+                  </p>
+                )}
+              </div>
+
               <div className="mt-3 space-y-2">
                 <Button
                   full
                   size="lg"
                   variant="success"
                   loading={busy}
-                  disabled={!callVerified}
+                  disabled={!callVerified || (refills > 0 && !validUntil)}
                   icon={<ShieldCheck size={18} />}
                   onClick={approve}
                 >
@@ -476,6 +544,13 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
               <p className="font-semibold text-ink-900">
                 {rx.status === "APPROVED" ? "Approved & released" : "Rejected"}
               </p>
+              {rx.status === "APPROVED" && (
+                <p className="mt-1 text-xs font-bold text-emerald-800">
+                  {rx.refillsAuthorised
+                    ? `${(rx.refillsAuthorised ?? 0) - (rx.refillsUsed ?? 0)} of ${rx.refillsAuthorised} repeat dispensings left · valid until ${rx.validUntil}`
+                    : "No repeat dispensings authorised"}
+                </p>
+              )}
               <p className="mt-1 text-sm text-ink-700">
                 {rx.verificationNote ?? rx.rejectionReason}
               </p>

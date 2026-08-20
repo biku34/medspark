@@ -25,7 +25,9 @@ export type CollectionName =
   | "stockAlerts"
   | "providers"
   | "bookings"
-  | "settings";
+  | "settings"
+  | "carePlans"
+  | "subscriptions";
 
 export const COLLECTIONS: CollectionName[] = [
   "users",
@@ -40,6 +42,8 @@ export const COLLECTIONS: CollectionName[] = [
   "providers",
   "bookings",
   "settings",
+  "carePlans",
+  "subscriptions",
 ];
 
 export type Filter = Record<string, unknown>;
@@ -236,6 +240,11 @@ const mongoStore: Store = {
     await db.collection("bookings").createIndex({ customerId: 1, date: -1 });
     await db.collection("bookings").createIndex({ providerId: 1, status: 1 });
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
+    await db.collection("carePlans").createIndex({ customerId: 1, createdAt: -1 });
+    await db.collection("carePlans").createIndex({ status: 1, createdAt: -1 });
+    // The repeat runner asks "what is due today" on every pass.
+    await db.collection("subscriptions").createIndex({ status: 1, nextDate: 1 });
+    await db.collection("subscriptions").createIndex({ customerId: 1, createdAt: -1 });
   },
 };
 

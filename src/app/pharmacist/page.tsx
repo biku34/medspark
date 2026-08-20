@@ -2,16 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2, FileText, Phone } from "lucide-react";
+import { CheckCircle2, FileText, Hospital, Phone, Stethoscope } from "lucide-react";
 import { QueueTabs, StaffShell } from "@/components/staff-shell";
 import { Metric, MetricRow, Pill, Ticket, WaitTimer } from "@/components/ops";
 import { ComplianceNote } from "@/components/brand";
 import { EmptyState, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
-import { PRESCRIPTION_LABELS, type Prescription, type PrescriptionStatus } from "@/lib/types";
+import { totalVisitCount } from "@/lib/care";
+import {
+  CARE_PLAN_LABELS,
+  PRESCRIPTION_LABELS,
+  type CarePlan,
+  type Prescription,
+  type PrescriptionStatus,
+} from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
 
-type Tab = "queue" | "clarification" | "approved" | "rejected";
+type Tab = "queue" | "care" | "clarification" | "approved" | "rejected";
 
 const TONE: Record<PrescriptionStatus, "amber" | "green" | "red" | "blue" | "grey"> = {
   PENDING: "amber",
@@ -31,19 +38,31 @@ const ACCENT: Record<PrescriptionStatus, "amber" | "green" | "red" | "blue" | "g
 
 export default function PharmacistDashboard() {
   const [list, setList] = useState<Prescription[]>([]);
+  const [plans, setPlans] = useState<CarePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("queue");
 
   useEffect(() => {
     const load = () =>
-      api<{ prescriptions: Prescription[] }>("/api/prescriptions")
-        .then((d) => setList(d.prescriptions))
+      Promise.all([
+        api<{ prescriptions: Prescription[] }>("/api/prescriptions"),
+        api<{ carePlans: CarePlan[] }>("/api/care-plans"),
+      ])
+        .then(([rx, cp]) => {
+          setList(rx.prescriptions);
+          setPlans(cp.carePlans);
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     void load();
     const t = setInterval(load, 10_000);
     return () => clearInterval(t);
   }, []);
+
+  // Plans still needing the care team: not yet proposed, or sent back for edits.
+  const openPlans = plans.filter((p) =>
+    ["SUBMITTED", "IN_REVIEW", "CHANGES_REQUESTED"].includes(p.status),
+  );
 
   const queue = list.filter((p) => p.status === "PENDING" || p.status === "IN_REVIEW");
   const clarification = list.filter((p) => p.status === "CLARIFICATION");
@@ -87,13 +106,19 @@ export default function PharmacistDashboard() {
         />
         <Metric label="Awaiting customer" value={clarification.length} tone="blue" />
         <Metric label="Approved" value={approved.length} tone="green" />
-        <Metric label="Rejected" value={rejected.length} tone={rejected.length ? "red" : "neutral"} />
+        <Metric
+          label="Care plans"
+          value={openPlans.length}
+          tone={openPlans.length ? "violet" : "neutral"}
+          live={openPlans.some((p) => p.status === "SUBMITTED")}
+        />
       </MetricRow>
 
       <div className="mt-3">
         <QueueTabs<Tab>
           tabs={[
             { id: "queue", label: "To verify", count: queue.length, urgent: true },
+            { id: "care", label: "Care plans", count: openPlans.length, urgent: true },
             { id: "clarification", label: "Clarification", count: clarification.length },
             { id: "approved", label: "Approved", count: approved.length },
             { id: "rejected", label: "Rejected", count: rejected.length },
@@ -105,6 +130,79 @@ export default function PharmacistDashboard() {
 
       <ComplianceNote className="mb-3" />
 
+      {tab === "care" ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {loading ? (
+            Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-36" />)
+          ) : openPlans.length === 0 ? (
+            <div className="lg:col-span-2">
+              <EmptyState
+                icon={<Hospital size={36} />}
+                title="No care plans waiting"
+                body="Requests appear here the moment a customer uploads their documents."
+              />
+            </div>
+          ) : (
+            openPlans.map((p) => (
+              <Ticket
+                key={p.id}
+                code={p.ref}
+                accent={p.status === "SUBMITTED" ? "amber" : "blue"}
+                timer={<WaitTimer since={p.createdAt} warnAfter={60} breachAfter={240} />}
+                meta={
+                  <span>
+                    {p.customerName} · {relativeTime(p.createdAt)}
+                  </span>
+                }
+                state={
+                  <Pill tone={p.status === "SUBMITTED" ? "amber" : "blue"}>
+                    {CARE_PLAN_LABELS[p.status]}
+                  </Pill>
+                }
+                actions={
+                  <Link
+                    href={`/pharmacist/care-plans/${p.id}`}
+                    className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand-600 px-3 text-[13px] font-bold text-white hover:bg-brand-700 sm:flex-none"
+                  >
+                    <Stethoscope size={14} />
+                    {p.status === "SUBMITTED" ? "Start review" : "Continue"}
+                  </Link>
+                }
+              >
+                <p className="text-[13px] text-ink-800">
+                  <strong className="text-ink-900">{p.patientName}</strong>
+                  {p.patientAge ? `, ${p.patientAge}` : ""}
+                  {p.condition ? ` · ${p.condition}` : ""}
+                </p>
+                {p.hospitalName && (
+                  <p className="text-[11px] text-ink-500">
+                    {p.hospitalName}
+                    {p.dischargeDate ? ` · discharged ${p.dischargeDate}` : ""}
+                  </p>
+                )}
+                {p.allergies && (
+                  <p className="mt-1 inline-block rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-700">
+                    Allergies: {p.allergies}
+                  </p>
+                )}
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-600">
+                  <span className="inline-flex items-center gap-1">
+                    <FileText size={11} className="text-ink-400" />
+                    {p.documents.length} document(s)
+                  </span>
+                  {p.medicines.length > 0 && <span>{p.medicines.length} medicine(s) drafted</span>}
+                  {p.visits.length > 0 && <span>{totalVisitCount(p)} visit(s) drafted</span>}
+                </p>
+                {p.status === "CHANGES_REQUESTED" && p.changeRequest && (
+                  <p className="mt-1.5 rounded border-l-2 border-amber-400 bg-amber-50 py-1 pl-2 text-[11px] text-amber-900">
+                    “{p.changeRequest}”
+                  </p>
+                )}
+              </Ticket>
+            ))
+          )}
+        </div>
+      ) : (
       <div className="grid gap-3 lg:grid-cols-2">
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-40" />)
@@ -187,7 +285,8 @@ export default function PharmacistDashboard() {
             </Ticket>
           ))
         )}
-      </div>
+        </div>
+      )}
     </StaffShell>
   );
 }

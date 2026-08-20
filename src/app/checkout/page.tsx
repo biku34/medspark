@@ -3,7 +3,15 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Banknote, CreditCard, MapPin, Smartphone } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  CalendarClock,
+  CreditCard,
+  MapPin,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
@@ -17,10 +25,19 @@ import {
   KeyValue,
   Modal,
   SectionTitle,
+  Select,
   Skeleton,
 } from "@/components/ui";
 import { api, post } from "@/lib/client";
-import type { Order, PharmacyOffer, Prescription } from "@/lib/types";
+import {
+  REPEAT_DISCOUNT_PCT,
+  REPEAT_META,
+  type Order,
+  type PharmacyOffer,
+  type Prescription,
+  type RepeatFrequency,
+  type Subscription,
+} from "@/lib/types";
 import { inr } from "@/lib/utils";
 
 type PaymentMode = "COD" | "UPI" | "CARD";
@@ -55,6 +72,8 @@ function CheckoutInner() {
   const [payment, setPayment] = useState<PaymentMode>("COD");
   const [otpOpen, setOtpOpen] = useState(false);
   const [otp, setOtp] = useState("");
+  const [repeat, setRepeat] = useState(false);
+  const [frequency, setFrequency] = useState<RepeatFrequency>("MONTHLY");
 
   const itemsParam = useMemo(() => cart.map((l) => `${l.medicineId}:${l.qty}`).join(","), [cart]);
 
@@ -100,9 +119,46 @@ function CheckoutInner() {
         lat: origin.lat,
         lng: origin.lng,
       });
+      /* The repeat schedule is created after the order, and never instead of
+         it — if the schedule is refused (usually an ℞ with no repeats left)
+         the customer still gets the medicines they just paid for. */
+      let repeatRef: string | null = null;
+      if (repeat) {
+        try {
+          const { subscription } = await post<{ subscription: Subscription }>(
+            "/api/subscriptions",
+            {
+              pharmacyId,
+              items: cart.map((l) => ({ medicineId: l.medicineId, qty: l.qty })),
+              prescriptionId: cart.some((l) => l.type === "RX")
+                ? activePrescriptionId
+                : undefined,
+              frequency,
+              paymentMode: payment,
+              address,
+              lat: origin.lat,
+              lng: origin.lng,
+            },
+          );
+          repeatRef = subscription.ref;
+        } catch (e) {
+          toast({
+            kind: "error",
+            title: "Order placed, but the repeat was not set up",
+            body: (e as Error).message,
+          });
+        }
+      }
+
       clearCart();
       setActivePrescriptionId(null);
-      toast({ kind: "success", title: "Order placed", body: `Order ID ${order.code}` });
+      toast({
+        kind: "success",
+        title: "Order placed",
+        body: repeatRef
+          ? `Order ID ${order.code} · repeat ${repeatRef} created`
+          : `Order ID ${order.code}`,
+      });
       router.push(`/orders/${order.id}`);
     } catch (e) {
       toast({ kind: "error", title: "Could not place order", body: (e as Error).message });
@@ -217,6 +273,62 @@ function CheckoutInner() {
         <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-500">
           <MapPin size={12} /> Rider will call on {user?.phone ?? "your registered number"}
         </p>
+      </Card>
+
+      {/* ------------------------- repeat delivery ------------------------- */}
+      <Card className="mt-3">
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={repeat}
+            onChange={(e) => setRepeat(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand-600"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-[14px] font-extrabold text-ink-900">
+                Deliver this again, automatically
+              </span>
+              <Badge tone="green">Save {REPEAT_DISCOUNT_PCT}%</Badge>
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-500">
+              For medicines you take every month. Skip, pause or cancel any time — nothing is
+              locked in.
+            </span>
+          </span>
+        </label>
+
+        {repeat && (
+          <div className="mt-3 space-y-2 border-t border-ink-100 pt-3">
+            <Field label="How often?">
+              <Select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as RepeatFrequency)}
+              >
+                {(["WEEKLY", "FORTNIGHTLY", "MONTHLY"] as RepeatFrequency[]).map((f) => (
+                  <option key={f} value={f}>
+                    {REPEAT_META[f].label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <p className="flex items-start gap-2 rounded-lg bg-ink-50 p-2.5 text-[11px] leading-relaxed text-ink-600">
+              <CalendarClock size={14} className="mt-px shrink-0 text-ink-400" />
+              Your first repeat arrives {REPEAT_META[frequency].days} days from today, from{" "}
+              {offer.pharmacy.name}. Today's order is separate from the schedule.
+            </p>
+
+            {cart.some((l) => l.type === "RX") && (
+              <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-900">
+                <ShieldCheck size={14} className="mt-px shrink-0" />
+                This basket contains a prescription medicine. The repeat runs only for as many
+                dispensings as your pharmacist authorised, then stops and asks for a current
+                prescription.
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       <Card className="mt-3">
