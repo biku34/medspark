@@ -52,7 +52,7 @@ export default function CarePlansPage() {
               <br />
               the hospital gave you
             </h1>
-            <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/75">
+            <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-white/75">
               A pharmacist reads it and tells you exactly which tablets to continue, which to stop,
               and which nurse or physio visits to book. You approve — then we schedule it.
             </p>

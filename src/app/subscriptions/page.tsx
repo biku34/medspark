@@ -100,7 +100,7 @@ export default function SubscriptionsPage() {
               <br />
               without asking twice
             </h1>
-            <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/75">
+            <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-white/75">
               Set the day once. It arrives from your pharmacy, {REPEAT_DISCOUNT_PCT}% cheaper every
               cycle, and stops on its own the moment your prescription runs out.
             </p>

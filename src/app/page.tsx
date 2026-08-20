@@ -198,7 +198,7 @@ export default function HomePage() {
               Stop re-ordering the same
               <br className="hidden sm:block" /> tablets every month
             </h2>
-            <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-white/70">
+            <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-white/70">
               Pick a day, pick your pharmacy, and it arrives on its own — 5% off every time. Skip a
               month or cancel whenever you like.
             </p>

@@ -96,7 +96,7 @@ export function HomeCareBand() {
             A physiotherapist or nurse,
             <br className="hidden sm:block" /> at your door
           </h2>
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-white/65">
+          <p className="mt-1.5 flex max-w-xl flex-wrap items-center gap-x-1.5 text-[13px] text-white/65">
             {total > 0 ? (
               <>
                 <span className="font-extrabold text-brand-300">{total} verified</span>
@@ -114,7 +114,7 @@ export function HomeCareBand() {
       </div>
 
       {/* --------------------------- the two ----------------------------- */}
-      <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-2 2xl:gap-3">
         {SERVICES.map((s) => {
           const cfg = rateFor(s.type);
           const p = SERVICE_PALETTE[s.art];
@@ -194,7 +194,7 @@ export function HomeCareBand() {
               <Link
                 key={p.id}
                 href={`/services/${p.type === "PHYSIO" ? "physiotherapy" : "nursing"}`}
-                className="w-[190px] shrink-0 rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10 transition-colors hover:bg-white/[0.1]"
+                className="w-[232px] shrink-0 rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10 transition-colors hover:bg-white/[0.1] sm:w-[248px]"
               >
                 <div className="flex items-center gap-2.5">
                   <span
@@ -207,7 +207,7 @@ export function HomeCareBand() {
                     {initials(p.name)}
                   </span>
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1 truncate text-[13.5px] font-extrabold">
+                    <p className="flex items-center gap-1 text-[13.5px] font-extrabold leading-tight">
                       {p.name}
                       {p.verified && (
                         <BadgeCheck size={13} className="shrink-0 text-brand-300" />
