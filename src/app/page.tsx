@@ -104,6 +104,27 @@ export default function HomePage() {
       </div>
 
       {/* ------------------------------------------------------------------ */}
+      {/* Prescription banner                                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <Link
+        href="/prescriptions/upload"
+        className="mt-3 flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 to-amber-300 p-3.5"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/70 text-2xl">
+          📄
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-extrabold leading-tight text-amber-950">
+            Have a doctor&apos;s prescription?
+          </span>
+          <span className="block text-[12px] leading-tight text-amber-900">
+            Upload it — a licensed pharmacist verifies before delivery
+          </span>
+        </span>
+        <ChevronRight size={20} className="shrink-0 text-amber-900" />
+      </Link>
+
+      {/* ------------------------------------------------------------------ */}
       {/* Active order strip                                                  */}
       {/* ------------------------------------------------------------------ */}
       {active.length > 0 && (
@@ -134,27 +155,6 @@ export default function HomePage() {
           ))}
         </div>
       )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Prescription banner                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      <Link
-        href="/prescriptions/upload"
-        className="mt-3 flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 to-amber-300 p-3.5"
-      >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/70 text-2xl">
-          📄
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-extrabold leading-tight text-amber-950">
-            Have a doctor&apos;s prescription?
-          </span>
-          <span className="block text-[12px] leading-tight text-amber-900">
-            Upload it — a licensed pharmacist verifies before delivery
-          </span>
-        </span>
-        <ChevronRight size={20} className="shrink-0 text-amber-900" />
-      </Link>
 
       {/* ------------------------------------------------------------------ */}
       {/* Shop by category                                                    */}
