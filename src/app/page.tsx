@@ -7,10 +7,9 @@ import { ChevronRight, RotateCcw, ShieldCheck, Store, Truck } from "lucide-react
 import { CustomerShell } from "@/components/customer-shell";
 import { useApp } from "@/components/providers";
 import { ProductCard } from "@/components/product-card";
-import { MiniTracker } from "@/components/order-tracker";
 import { CategoryArt, ProductArt, ServiceArt, paletteFor } from "@/components/art";
 import { api } from "@/lib/client";
-import { ORDER_LABELS, type MedicineSearchResult, type Order } from "@/lib/types";
+import type { MedicineSearchResult, Order } from "@/lib/types";
 import { SHELF_CATEGORIES } from "@/lib/shelf";
 import { inr } from "@/lib/utils";
 
@@ -78,9 +77,6 @@ export default function HomePage() {
     };
   }, [user, geoQuery]);
 
-  const active = orders.filter(
-    (o) => !["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status),
-  );
   const past = orders.filter((o) => o.status === "DELIVERED");
 
   const bySub = (id: string) => shelf.filter((r) => r.medicine.subcategory === id).slice(0, 10);
@@ -88,43 +84,6 @@ export default function HomePage() {
 
   return (
     <CustomerShell wide>
-      {/* ================================================================== */}
-      {/* Live order — the only thing that outranks shopping                  */}
-      {/* ================================================================== */}
-      {active.length > 0 && (
-        <div className="mb-4 space-y-2">
-          {active.map((o) => (
-            <Link
-              key={o.id}
-              href={`/orders/${o.id}`}
-              className="block overflow-hidden rounded-xl bg-ink-900 text-white"
-            >
-              <div className="flex items-center gap-3 px-3.5 py-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
-                  <Truck size={19} strokeWidth={2.4} className="text-brand-300" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-extrabold leading-tight">
-                    {ORDER_LABELS[o.status]}
-                  </span>
-                  <span className="block truncate text-[12px] text-white/60">
-                    {o.code} · {o.pharmacyName}
-                  </span>
-                </span>
-                <span className="nums shrink-0 rounded-lg bg-brand-500 px-2.5 py-1.5 text-center text-[13px] font-extrabold leading-none">
-                  {o.etaMinFrom}–{o.etaMinTo}
-                  <span className="block text-[9px] font-bold text-brand-100">MIN</span>
-                </span>
-                <ChevronRight size={18} className="shrink-0 text-white/40" />
-              </div>
-              <div className="bg-white/5 px-3.5 pb-3 pt-1">
-                <MiniTracker status={o.status} />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-
       {/* ================================================================== */}
       {/* Shop by category — image-forward, no borders, tight                 */}
       {/* ================================================================== */}

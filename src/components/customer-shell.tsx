@@ -15,12 +15,16 @@ import {
   RefreshCw,
   Search,
   ShoppingCart,
+  Truck,
   User as UserIcon,
 } from "lucide-react";
 import { LogoMark } from "./brand";
 import { LocationPermissionGate, LocationSheet } from "./location-sheet";
 import { useApp } from "./providers";
 import { ProductArt } from "./art";
+import { MiniTracker } from "./order-tracker";
+import { api } from "@/lib/client";
+import { ORDER_LABELS, type Order } from "@/lib/types";
 import { CITIES, areasFor } from "@/lib/zones";
 import { inr } from "@/lib/utils";
 
@@ -249,10 +253,109 @@ export function BottomNav() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Sticky cart bar                                                            */
+/* Bottom dock — live order, then cart                                        */
 /* -------------------------------------------------------------------------- */
 
-function CartBar() {
+/**
+ * The order in flight, docked to the bottom of the screen.
+ *
+ * A delivery in progress is a live thing, not a page section: the customer
+ * keeps shopping while it runs and wants the ETA within thumb reach on
+ * whatever screen they wander to. So it follows them, sitting above the tab
+ * bar rather than pushing the catalogue down from the top.
+ */
+function LiveOrderCard() {
+  const { user } = useApp();
+  const pathname = usePathname();
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  // Redundant on the tracking page itself, and unwelcome mid-checkout.
+  const muted = /^\/orders\/[^/]+/.test(pathname) || pathname.startsWith("/checkout");
+
+  useEffect(() => {
+    if (!user || muted) {
+      setOrders([]);
+      return;
+    }
+    let alive = true;
+    const load = () =>
+      api<{ orders: Order[] }>("/api/orders")
+        .then((d) => {
+          if (alive) setOrders(d.orders);
+        })
+        .catch(() => {});
+    void load();
+    const t = setInterval(load, 20_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [user, muted, pathname]);
+
+  if (muted) return null;
+
+  const live = orders
+    .filter((o) => !["DELIVERED", "CANCELLED", "REJECTED"].includes(o.status))
+    .sort((a, b) => a.promisedTo.localeCompare(b.promisedTo));
+
+  if (live.length === 0) return null;
+
+  // Show the one arriving soonest; the rest are one tap away.
+  const next = live[0];
+  const more = live.length - 1;
+
+  return (
+    /* No entry animation: this dock persists across navigation, and a bar
+       that slides up again on every route change reads as a bug. The cart
+       bar keeps its animation because it genuinely appears on an action. */
+    <Link href={more > 0 ? "/orders" : `/orders/${next.id}`} className="relative block">
+      {/* a second card peeking out says "there is more than one" without words */}
+      {more > 0 && (
+        <span className="absolute inset-x-3 -top-1.5 h-4 rounded-t-2xl bg-ink-800 shadow-lg" />
+      )}
+
+      <span className="relative block overflow-hidden rounded-2xl bg-ink-900 text-white shadow-xl shadow-ink-900/25">
+        <span className="flex items-center gap-2.5 px-3 py-2.5">
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
+            <Truck size={17} strokeWidth={2.4} className="text-brand-300" />
+            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+              <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-400 ring-2 ring-ink-900" />
+            </span>
+          </span>
+
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-[14px] font-extrabold leading-tight">
+                {ORDER_LABELS[next.status]}
+              </span>
+              {more > 0 && (
+                <span className="nums shrink-0 rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-extrabold">
+                  +{more}
+                </span>
+              )}
+            </span>
+            <span className="block truncate text-[11px] text-white/55">
+              {next.code} · {next.pharmacyName}
+            </span>
+          </span>
+
+          <span className="nums shrink-0 rounded-lg bg-brand-500 px-2 py-1 text-center text-[13px] font-extrabold leading-none">
+            {next.etaMinFrom}–{next.etaMinTo}
+            <span className="block text-[9px] font-bold text-brand-100">MIN</span>
+          </span>
+          <ChevronRight size={17} className="shrink-0 text-white/35" />
+        </span>
+
+        <span className="block px-3 pb-2.5">
+          <MiniTracker status={next.status} />
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function CartCard() {
   const { cart, cartCount, cartTotal } = useApp();
   const pathname = usePathname();
   const hideOn = ["/cart", "/checkout", "/select-pharmacy"];
@@ -260,33 +363,46 @@ function CartBar() {
   if (cart.length === 0 || hideOn.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[4.25rem] z-40 px-3 sm:bottom-4 no-print">
-      <Link
-        href="/cart"
-        className="slide-up mx-auto flex max-w-2xl items-center gap-3 rounded-2xl bg-brand-600 px-3 py-2.5 text-white shadow-xl shadow-brand-900/30"
-      >
-        <span className="flex -space-x-2.5">
-          {cart.slice(0, 3).map((l) => (
-            <span
-              key={l.medicineId}
-              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border-2 border-brand-600 bg-white"
-            >
-              <ProductArt subcategory={l.subcategory ?? ""} form={l.form} size={30} />
-            </span>
-          ))}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[13px] font-extrabold leading-tight">
-            {cartCount} item{cartCount > 1 ? "s" : ""}
+    <Link
+      href="/cart"
+      className="slide-up flex items-center gap-3 rounded-2xl bg-brand-600 px-3 py-2.5 text-white shadow-xl shadow-brand-900/30"
+    >
+      <span className="flex -space-x-2.5">
+        {cart.slice(0, 3).map((l) => (
+          <span
+            key={l.medicineId}
+            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border-2 border-brand-600 bg-white"
+          >
+            <ProductArt subcategory={l.subcategory ?? ""} form={l.form} size={30} />
           </span>
-          <span className="nums block text-[12px] font-semibold leading-tight text-brand-100">
-            {inr(cartTotal)}
-          </span>
+        ))}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-extrabold leading-tight">
+          {cartCount} item{cartCount > 1 ? "s" : ""}
         </span>
-        <span className="ml-auto flex items-center gap-0.5 text-[15px] font-extrabold">
-          View cart <ChevronRight size={17} strokeWidth={3} />
+        <span className="nums block text-[12px] font-semibold leading-tight text-brand-100">
+          {inr(cartTotal)}
         </span>
-      </Link>
+      </span>
+      <span className="ml-auto flex items-center gap-0.5 text-[15px] font-extrabold">
+        View cart <ChevronRight size={17} strokeWidth={3} />
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * Both floating bars share one stack so they can never overlap each other or
+ * the tab bar, however many of them happen to be on screen.
+ */
+function BottomDock() {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.25rem_+_env(safe-area-inset-bottom))] z-40 px-3 sm:bottom-4 no-print">
+      <div className="pointer-events-auto mx-auto flex max-w-2xl flex-col gap-2">
+        <LiveOrderCard />
+        <CartCard />
+      </div>
     </div>
   );
 }
@@ -343,14 +459,14 @@ export function CustomerShell({ children, wide }: { children: ReactNode; wide?: 
       <ServiceAreaBanner />
       <main
         className={clsx(
-          "mx-auto w-full flex-1 px-3 pb-28 pt-3 sm:px-4 sm:pb-8",
+          "mx-auto w-full flex-1 px-3 pb-36 pt-3 sm:px-4 sm:pb-8",
           wide ? "max-w-7xl" : "max-w-6xl",
         )}
       >
         {children}
       </main>
       <BottomNav />
-      <CartBar />
+      <BottomDock />
       <LocationPermissionGate />
       <footer className="border-t border-ink-200 bg-white px-4 py-7 text-center text-[11px] leading-relaxed text-ink-400 no-print">
         <p className="mx-auto max-w-2xl">
