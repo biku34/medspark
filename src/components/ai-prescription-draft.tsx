@@ -59,10 +59,40 @@ export function AiPrescriptionDraft({
       });
 
       setDraft(res.draft);
-      // Agreed lines start ticked; a single-model line does not.
-      setPicked(
-        Object.fromEntries(res.draft.lines.map((l, i) => [i, l.agreed])),
-      );
+      setPicked(Object.fromEntries(res.draft.lines.map((l, i) => [i, l.agreed])));
+
+      /**
+       * Lines both vendors independently agreed on go straight into the form.
+       *
+       * The pharmacist still reads, calls and approves — that gate is what
+       * makes this safe, not the extra click. A line only one model found is
+       * deliberately left out here and has to be added by hand, so the
+       * automatic path only ever carries the corroborated reading.
+       */
+      const agreed = res.draft.lines.filter((l) => l.agreed);
+      if (agreed.length > 0) {
+        onApply(
+          agreed.map((l) => ({
+            name: l.name,
+            strength: l.strength,
+            dosage: l.dosage,
+            qty: l.qty,
+            medicineId: l.medicineId,
+          })),
+        );
+        toast({
+          kind: "success",
+          title: `${agreed.length} line(s) filled in — check them against the page`,
+        });
+      }
+
+      if (res.draft.lines.some((l) => !l.agreed)) {
+        toast({
+          kind: "info",
+          title: "Some lines need your eye",
+          body: "Only one model read them, so they were left for you to add.",
+        });
+      }
 
       if (!res.draft.ok) {
         toast({

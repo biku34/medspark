@@ -71,6 +71,8 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   const [meds, setMeds] = useState<PrescriptionMedicine[]>([]);
   const [note, setNote] = useState("Prescription verified. Customer details confirmed.");
   const [refills, setRefills] = useState(0);
+  const [stockOnApprove, setStockOnApprove] = useState(true);
+  const [defaultStock, setDefaultStock] = useState(20);
   const [validUntil, setValidUntil] = useState("");
 
   /* modals */
@@ -190,13 +192,23 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   const approve = async () => {
     setBusy(true);
     try {
-      await patch(`/api/prescriptions/${rx.id}`, {
-        action: "approve",
-        note,
-        refillsAuthorised: refills,
-        validUntil: refills > 0 ? validUntil : undefined,
+      const res = await patch<{ stocked?: Array<{ name: string; added: boolean }> }>(
+        `/api/prescriptions/${rx.id}`,
+        {
+          action: "approve",
+          note,
+          refillsAuthorised: refills,
+          validUntil: refills > 0 ? validUntil : undefined,
+          stockOnApprove,
+          defaultStock,
+        },
+      );
+      const n = res.stocked?.length ?? 0;
+      toast({
+        kind: "success",
+        title: "Prescription approved & released",
+        body: n ? `${n} medicine(s) are now on your shelf` : undefined,
       });
-      toast({ kind: "success", title: "Prescription approved & released" });
       await load();
     } catch (e) {
       toast({ kind: "error", title: "Cannot approve", body: (e as Error).message });
@@ -512,6 +524,52 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                   <p className="mt-2 text-xs text-ink-500">
                     No repeats: the customer must upload a fresh prescription for each order.
                   </p>
+                )}
+              </div>
+
+              {/* ------------------------------------------------------- */}
+              {/* Shelf.                                                   */}
+              {/*                                                          */}
+              {/* Inventory is a claim about physical stock, so this says  */}
+              {/* what it will actually do and lets the pharmacist turn it */}
+              {/* off. Listing something the shop does not hold means a    */}
+              {/* customer orders it and the order gets rejected, which is */}
+              {/* worse for them than seeing "out of stock".               */}
+              {/* ------------------------------------------------------- */}
+              <div className="mt-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={stockOnApprove}
+                    onChange={(e) => setStockOnApprove(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-ink-900">
+                      Put these on my shelf
+                    </span>
+                    <span className="block text-xs text-ink-600">
+                      Makes them orderable from your pharmacy straight away. Only adds what you
+                      do not already stock — an existing count is never lowered.
+                    </span>
+                  </span>
+                </label>
+
+                {stockOnApprove && (
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <span className="text-xs font-semibold text-ink-600">Units to record</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={defaultStock}
+                      onChange={(e) => setDefaultStock(Number(e.target.value))}
+                      className="h-8 w-20 rounded-lg border border-ink-200 px-2 text-sm tabular-nums"
+                    />
+                    <span className="text-xs text-ink-500">
+                      priced at MRP until you edit it
+                    </span>
+                  </div>
                 )}
               </div>
 

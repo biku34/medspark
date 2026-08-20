@@ -2,10 +2,13 @@ import { bad, guard, ok, readJson } from "@/lib/api";
 import { getStore } from "@/lib/db";
 import { notify } from "@/lib/services";
 import type {
+  InventoryItem,
+  Medicine,
   Prescription,
   PrescriptionMedicine,
   VerificationCall,
 } from "@/lib/types";
+import { newId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +58,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     call?: Partial<VerificationCall>;
     /** Repeat dispensings the pharmacist is willing to authorise. */
     refillsAuthorised?: number;
+    /** Put the verified medicines on this pharmacist's own shelf. */
+    stockOnApprove?: boolean;
+    /** Units to record for a medicine that is not stocked yet. */
+    defaultStock?: number;
     /** YYYY-MM-DD after which this prescription may no longer be dispensed. */
     validUntil?: string;
   }>(req);
@@ -185,6 +192,56 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         reviewedAt: new Date().toISOString(),
       });
 
+      /* --------------------------------------------------------------- */
+      /* Put the verified lines on the shelf.                             */
+      /*                                                                  */
+      /* Inventory is a claim about physical stock, so this is the        */
+      /* pharmacist asserting "we carry these" — not the system inventing */
+      /* availability. It therefore only ever adds what is missing or at  */
+      /* zero, never lowers a count somebody set by hand, and never       */
+      /* touches another pharmacy's shelf.                                */
+      /* --------------------------------------------------------------- */
+      const stocked: Array<{ name: string; stock: number; price: number; added: boolean }> = [];
+
+      if (body.stockOnApprove !== false && session.pharmacyId) {
+        const units = Math.max(1, Math.min(500, Math.round(Number(body.defaultStock ?? 20))));
+
+        for (const line of rx.extractedMedicines) {
+          if (!line.medicineId) continue;
+
+          const medicine = await store.one<Medicine>("medicines", { id: line.medicineId });
+          // A scheduled drug is never listed as orderable, however it arrived.
+          if (!medicine || medicine.restricted) continue;
+
+          const existing = await store.one<InventoryItem>("inventory", {
+            pharmacyId: session.pharmacyId,
+            medicineId: medicine.id,
+          });
+
+          if (existing && existing.stock > 0) continue;
+
+          if (existing) {
+            await store.update<InventoryItem>("inventory", existing.id, {
+              stock: units,
+              updatedAt: new Date().toISOString(),
+            });
+            stocked.push({ name: medicine.name, stock: units, price: existing.price, added: false });
+          } else {
+            const row: InventoryItem = {
+              id: newId("inv"),
+              pharmacyId: session.pharmacyId,
+              medicineId: medicine.id,
+              stock: units,
+              // No shelf price yet, so MRP is the only defensible starting point.
+              price: medicine.mrp,
+              updatedAt: new Date().toISOString(),
+            };
+            await store.insert("inventory", row);
+            stocked.push({ name: medicine.name, stock: units, price: medicine.mrp, added: true });
+          }
+        }
+      }
+
       const repeatLine = refillsAuthorised
         ? ` ${refillsAuthorised} repeat dispensing(s) authorised until ${validUntil}.`
         : "";
@@ -194,7 +251,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         body: `${rx.ref} was verified by ${session.name}. You can now choose a nearby pharmacy.${repeatLine}`,
         href: `/prescriptions/${rx.id}`,
       });
-      return ok({ prescription: updated });
+      return ok({ prescription: updated, stocked });
     }
 
     case "reject": {
