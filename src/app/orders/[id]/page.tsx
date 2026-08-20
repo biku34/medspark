@@ -19,6 +19,7 @@ import {
 import { CustomerShell } from "@/components/customer-shell";
 import { MapView } from "@/components/map-view";
 import { OrderTracker } from "@/components/order-tracker";
+import { RateOrder } from "@/components/rate-order";
 import { useApp } from "@/components/providers";
 import { Badge, Button, Card, EmptyState, KeyValue, Modal, Skeleton } from "@/components/ui";
 import { api, patch } from "@/lib/client";
@@ -155,6 +156,8 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* ----------------------------- tracker ---------------------------- */}
+      <RateOrder order={order} />
+
       <Card className="mt-3">
         <OrderTracker order={order} />
       </Card>

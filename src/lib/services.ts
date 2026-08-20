@@ -9,6 +9,8 @@
 import { getStore } from "./db";
 import type {
   GeoPoint,
+  RatingSummary,
+  Review,
   InventoryItem,
   Medicine,
   MedicineSearchResult,
@@ -29,6 +31,34 @@ export type SortKey = "fastest" | "nearest" | "cheapest" | "rating";
 export interface BasketLine {
   medicineId: string;
   qty: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ratings                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export function summariseRatings(ratings: number[]): RatingSummary {
+  const histogram: RatingSummary["histogram"] = [0, 0, 0, 0, 0];
+  for (const r of ratings) {
+    histogram[Math.min(4, Math.max(0, Math.round(r) - 1))] += 1;
+  }
+  const count = ratings.length;
+  const average = count ? Math.round((ratings.reduce((s, r) => s + r, 0) / count) * 10) / 10 : 0;
+  return { average, count, histogram };
+}
+
+/** Medicine id -> its rating summary, for the rows that have one. */
+function groupRatings(reviews: Review[]): Map<string, RatingSummary> {
+  const byMedicine = new Map<string, number[]>();
+  for (const r of reviews) {
+    if (!r.medicineId) continue;
+    const list = byMedicine.get(r.medicineId);
+    if (list) list.push(r.rating);
+    else byMedicine.set(r.medicineId, [r.rating]);
+  }
+  return new Map(
+    [...byMedicine.entries()].map(([id, ratings]) => [id, summariseRatings(ratings)]),
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -68,11 +98,15 @@ export async function searchMedicines(
 ): Promise<MedicineSearchResult[]> {
   const origin = opts.origin ?? DEFAULT_ORIGIN;
   const store = await getStore();
-  const [medicines, inventory, pharmacies] = await Promise.all([
+  const [medicines, inventory, pharmacies, reviews] = await Promise.all([
     store.list<Medicine>("medicines"),
     store.list<InventoryItem>("inventory"),
     servingPharmacies(origin),
+    store.list<Review>("reviews"),
   ]);
+
+  // One pass over reviews beats a query per result row.
+  const ratingsByMedicine = groupRatings(reviews);
 
   const q = query.trim().toLowerCase();
   const terms = q.split(/\s+/).filter(Boolean);
@@ -117,6 +151,7 @@ export async function searchMedicines(
       maxPrice: prices.length ? Math.max(...prices) : null,
       nearestKm: distances.length ? Math.min(...distances) : null,
       fastestEta: etas.length ? Math.min(...etas) : null,
+      rating: ratingsByMedicine.get(medicine.id),
     } satisfies MedicineSearchResult;
   });
 
@@ -136,9 +171,10 @@ export async function medicineById(
   const medicine = await store.one<Medicine>("medicines", { id });
   if (!medicine) return null;
 
-  const [inventory, pharmacies] = await Promise.all([
+  const [inventory, pharmacies, reviews] = await Promise.all([
     store.list<InventoryItem>("inventory", { medicineId: id }),
     servingPharmacies(origin),
+    store.list<Review>("reviews", { medicineId: id }),
   ]);
   const byPharmacy = new Map(pharmacies.map((p) => [p.id, p]));
   const rows = inventory.filter((i) => i.stock > 0 && byPharmacy.has(i.pharmacyId));
@@ -158,6 +194,7 @@ export async function medicineById(
     maxPrice: prices.length ? Math.max(...prices) : null,
     nearestKm: distances.length ? Math.min(...distances) : null,
     fastestEta: etas.length ? Math.min(...etas) : null,
+    rating: reviews.length ? summariseRatings(reviews.map((r) => r.rating)) : undefined,
   };
 }
 

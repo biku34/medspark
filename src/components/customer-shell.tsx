@@ -23,6 +23,7 @@ import { LocationPermissionGate, LocationSheet } from "./location-sheet";
 import { useApp } from "./providers";
 import { ProductArt } from "./art";
 import { SearchSuggest } from "./search-suggest";
+import { NotificationBell } from "./notification-bell";
 import { MiniTracker } from "./order-tracker";
 import { api } from "@/lib/client";
 import { ORDER_LABELS, type Order } from "@/lib/types";
@@ -73,6 +74,7 @@ export function CustomerHeader() {
                 >
                   Orders
                 </Link>
+                <NotificationBell />
                 {user ? (
                   <Link
                     href="/profile"

@@ -252,6 +252,36 @@ export interface Notification {
   createdAt: string;
 }
 
+/**
+ * A rating left after a delivered order.
+ *
+ * Tied to the order it came from, so a review can only be written by somebody
+ * who actually received the thing — the single rule that separates a review
+ * section from a comments box. One row covers the pharmacy that dispensed and,
+ * optionally, one medicine from that order.
+ */
+export interface Review {
+  id: string;
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  pharmacyId: string;
+  /** Absent when the customer rated only the service, not a specific item. */
+  medicineId?: string;
+  /** 1–5. */
+  rating: number;
+  text?: string;
+  createdAt: string;
+}
+
+/** Aggregate returned alongside a medicine or a pharmacy. */
+export interface RatingSummary {
+  average: number;
+  count: number;
+  /** Index 0 = one star … index 4 = five stars. */
+  histogram: [number, number, number, number, number];
+}
+
 export interface SearchLog {
   id: string;
   term: string;
@@ -298,6 +328,8 @@ export interface MedicineSearchResult {
   maxPrice: number | null;
   nearestKm: number | null;
   fastestEta: number | null;
+  /** Customer ratings, when this item has any. */
+  rating?: RatingSummary;
 }
 
 export const ORDER_FLOW: OrderStatus[] = [

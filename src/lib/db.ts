@@ -27,7 +27,8 @@ export type CollectionName =
   | "bookings"
   | "settings"
   | "carePlans"
-  | "subscriptions";
+  | "subscriptions"
+  | "reviews";
 
 export const COLLECTIONS: CollectionName[] = [
   "users",
@@ -44,6 +45,7 @@ export const COLLECTIONS: CollectionName[] = [
   "settings",
   "carePlans",
   "subscriptions",
+  "reviews",
 ];
 
 export type Filter = Record<string, unknown>;
@@ -240,6 +242,9 @@ const mongoStore: Store = {
     await db.collection("bookings").createIndex({ customerId: 1, date: -1 });
     await db.collection("bookings").createIndex({ providerId: 1, status: 1 });
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
+    await db.collection("reviews").createIndex({ medicineId: 1, createdAt: -1 });
+    await db.collection("reviews").createIndex({ pharmacyId: 1 });
+    await db.collection("reviews").createIndex({ orderId: 1 });
     await db.collection("carePlans").createIndex({ customerId: 1, createdAt: -1 });
     await db.collection("carePlans").createIndex({ status: 1, createdAt: -1 });
     // The repeat runner asks "what is due today" on every pass.

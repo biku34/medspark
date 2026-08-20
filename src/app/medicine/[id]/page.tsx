@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer-shell";
 import { ProductArt, paletteFor } from "@/components/art";
+import { MedicineReviews } from "@/components/medicine-reviews";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import { EmptyState, KeyValue, Skeleton } from "@/components/ui";
@@ -226,6 +227,8 @@ export default function MedicinePage({ params }: { params: Promise<{ id: string 
           insert. DawaQuick does not provide medical advice.
         </p>
       </div>
+
+      <MedicineReviews medicineId={m.id} />
 
       {m.type === "RX" && <ComplianceNote className="mt-3" />}
     </CustomerShell>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bell, Minus, Plus, Zap } from "lucide-react";
+import { Bell, Minus, Plus, Star, Zap } from "lucide-react";
 import type { MedicineSearchResult } from "@/lib/types";
 import { inr } from "@/lib/utils";
 import { useApp } from "./providers";
@@ -78,7 +78,7 @@ function AddControl({ result }: { result: MedicineSearchResult }) {
  * swapped out: neither can ever drop straight into a cart.
  */
 export function ProductCard({ result }: { result: MedicineSearchResult }) {
-  const { medicine: m, available, minPrice, fastestEta } = result;
+  const { medicine: m, available, minPrice, fastestEta, rating } = result;
   const { user, toast } = useApp();
   const [notified, setNotified] = useState(false);
 
@@ -120,6 +120,17 @@ export function ProductCard({ result }: { result: MedicineSearchResult }) {
       <Link href={`/medicine/${m.id}`} className="mt-2 block">
         <h3 className="clamp-2 text-[13px] font-semibold leading-snug text-ink-800">{m.name}</h3>
       </Link>
+
+      {/* Social proof sits directly under the name, where a shopper is already
+          looking, and only appears once somebody has actually rated it. */}
+      {rating && rating.count > 0 ? (
+        <p className="nums mt-1 flex items-center gap-1 text-[11px] font-bold text-ink-600">
+          <Star size={10} className="fill-rx-400 text-rx-400" />
+          {rating.average.toFixed(1)}
+          <span className="font-medium text-ink-400">({rating.count})</span>
+        </p>
+      ) : null}
+
       <p className="mt-0.5 text-[11px] text-ink-500">{m.packLabel}</p>
 
       {m.type === "RX" && (
