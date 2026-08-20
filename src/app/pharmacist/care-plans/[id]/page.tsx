@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Send,
+  Sparkles,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -18,7 +19,8 @@ import { StaffShell } from "@/components/staff-shell";
 import { ActionButton, PanelTitle, Pill } from "@/components/ops";
 import { useApp } from "@/components/providers";
 import { Card, Field, Input, Select, Skeleton, Textarea } from "@/components/ui";
-import { api, patch } from "@/lib/client";
+import { api, patch, post } from "@/lib/client";
+import { prepareDocument } from "@/lib/image-prep";
 import {
   FOLLOW_UP_TEMPLATES,
   VISIT_TEMPLATES,
@@ -61,6 +63,8 @@ export default function CarePlanBuilderPage() {
   const [catalogue, setCatalogue] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [aiNotes, setAiNotes] = useState<string[]>([]);
 
   const [summary, setSummary] = useState("");
   const [safetyNotes, setSafetyNotes] = useState("");
@@ -124,6 +128,74 @@ export default function CarePlanBuilderPage() {
       toast({ kind: "error", title: "Could not save", body: (e as Error).message });
     } finally {
       setBusy(false);
+    }
+  };
+
+  /**
+   * Ask the models to read the documents and fill the builder.
+   *
+   * Everything lands in local state exactly as if it had been typed, so the
+   * pharmacist edits and saves it themselves. Nothing is persisted here and
+   * nothing is sent to the customer.
+   */
+  const draftWithAi = async () => {
+    setDrafting(true);
+    setAiNotes([]);
+    try {
+      // The stored document is an SVG data URL; a vision model needs PNG
+      // bytes, so the page is rasterised and flattened here before it goes up.
+      const source =
+        plan?.documents.find((d) => d.kind === "DISCHARGE_SUMMARY") ?? plan?.documents[0];
+      if (!source) throw new Error("This plan has no document to read");
+      const prepared = await prepareDocument(source.fileData, {
+        enhance: source.mimeType !== "image/svg+xml",
+      });
+
+      const res = await post<{
+        draft: {
+          ok: boolean;
+          summary: string;
+          safetyNotes: string;
+          medicines: CarePlanMedicine[];
+          visits: CarePlanVisit[];
+          followUps: CarePlanFollowUp[];
+          unmatched: string[];
+          notes: string[];
+          models: string[];
+        };
+      }>("/api/ai/care-plan", {
+        carePlanId: id,
+        imageBase64: prepared.base64,
+        mimeType: prepared.mimeType,
+      });
+
+      const d = res.draft;
+      if (d.summary) setSummary(d.summary);
+      if (d.safetyNotes) setSafetyNotes(d.safetyNotes);
+
+      // Append rather than replace: anything already drafted by hand wins.
+      setMedicines((prev) => {
+        const have = new Set(prev.map((m) => m.medicineId).filter(Boolean));
+        return [...prev, ...d.medicines.filter((m) => !have.has(m.medicineId))];
+      });
+      setVisits((prev) => [...prev, ...d.visits]);
+      setFollowUps((prev) => [...prev, ...d.followUps]);
+
+      setAiNotes([
+        ...d.notes,
+        ...d.unmatched.map((u) => `Not matched to the catalogue: ${u}`),
+        d.models.length ? `Read by ${d.models.join(" · ")}` : "",
+      ].filter(Boolean));
+
+      toast({
+        kind: d.ok ? "success" : "info",
+        title: d.ok ? "Draft filled in — check every line" : "Nothing could be drafted",
+        body: d.ok ? undefined : d.notes[0],
+      });
+    } catch (e) {
+      toast({ kind: "error", title: "AI could not draft this", body: (e as Error).message });
+    } finally {
+      setDrafting(false);
     }
   };
 
@@ -362,6 +434,32 @@ export default function CarePlanBuilderPage() {
               <ActionButton loading={busy} onClick={() => send("claim")}>
                 Start the review
               </ActionButton>
+            </Card>
+          )}
+
+          {editable && (
+            <Card className="border-care-200 bg-care-50">
+              <div className="flex flex-wrap items-center gap-2">
+                <Sparkles size={16} className="shrink-0 text-care-700" />
+                <p className="text-[13px] font-extrabold text-care-800">Draft with AI</p>
+                <p className="min-w-0 flex-1 text-[11.5px] text-care-700/80">
+                  Reads the documents and fills this form. It cannot send the plan or book
+                  anything — you still do that.
+                </p>
+                <ActionButton loading={drafting} onClick={draftWithAi}>
+                  Read the documents
+                </ActionButton>
+              </div>
+
+              {aiNotes.length > 0 && (
+                <ul className="mt-2.5 space-y-1 border-t border-care-200 pt-2.5">
+                  {aiNotes.map((n, i) => (
+                    <li key={i} className="text-[11.5px] leading-relaxed text-care-800">
+                      {n}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
           )}
 

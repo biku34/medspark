@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { StaffShell } from "@/components/staff-shell";
+import { AiPrescriptionDraft } from "@/components/ai-prescription-draft";
 import { ComplianceNote } from "@/components/brand";
 import { useApp } from "@/components/providers";
 import {
@@ -288,7 +289,21 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
 
         {/* ---------------------------- review ---------------------------- */}
         <div>
-          <Card>
+          {/* The AI draft sits above the form, never inside it: it is a second
+              opinion the pharmacist pulls from, not a pre-filled answer. */}
+          <AiPrescriptionDraft
+            prescription={rx}
+            disabled={decided}
+            onApply={(lines) =>
+              setMeds((prev) => {
+                // Never duplicate a line the pharmacist already has.
+                const have = new Set(prev.map((m) => m.medicineId).filter(Boolean));
+                return [...prev, ...lines.filter((l) => !l.medicineId || !have.has(l.medicineId))];
+              })
+            }
+          />
+
+          <Card className="mt-3">
             <SectionTitle
               title="Medicines to dispense"
               subtitle="Confirm every line against the prescription."
