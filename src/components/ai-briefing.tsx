@@ -23,6 +23,8 @@ interface Briefing {
   steps: Array<{ tool: string; args: Record<string, unknown> }>;
   notes: string[];
   model: string;
+  engine: string;
+  cached: boolean;
   createdAt: string;
 }
 
@@ -60,11 +62,14 @@ export function AiBriefing({ role }: { role: "pharmacy" | "pharmacist" }) {
   const [showSteps, setShowSteps] = useState(false);
 
   const run = useCallback(
-    async (q?: string) => {
+    async (q?: string, force = false) => {
       setBusy(true);
       setAsked(q ?? null);
       try {
-        const res = await post<{ briefing: Briefing }>("/api/ai/agent", { question: q });
+        const res = await post<{ briefing: Briefing }>("/api/ai/agent", {
+          question: q,
+          force,
+        });
         setBriefing(res.briefing);
         if (!res.briefing.ok) {
           toast({
@@ -100,9 +105,14 @@ export function AiBriefing({ role }: { role: "pharmacy" | "pharmacist" }) {
         {urgent > 0 && <Pill tone="red">{urgent} need you now</Pill>}
         <p className="min-w-0 flex-1 text-[11.5px] text-care-700/80">
           Looks at your queue, shelf and schedule. It reports — it changes nothing.
+          {briefing?.ok && (
+            <span className="ml-1 text-care-700/60">
+              {briefing.cached ? "Last briefing" : "Fresh"} · {briefing.engine}
+            </span>
+          )}
         </p>
         <button
-          onClick={() => run(asked ?? undefined)}
+          onClick={() => run(asked ?? undefined, true)}
           disabled={busy}
           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-care-300 bg-white px-2.5 text-[12px] font-bold text-care-800 hover:bg-care-100 disabled:opacity-50"
         >

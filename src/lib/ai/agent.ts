@@ -15,10 +15,13 @@
  * the pharmacist sees it.
  */
 
+import { getStore } from "../db";
 import type { Session } from "../session";
-import { MODELS, parseJson } from "./providers";
-import { AiError, classify, fetchWithTimeout, hasProvider, withKey } from "./router";
-import { TOOL_MAP, toolSchemas } from "./tools";
+import type { ChatMessage, Engine } from "./engines";
+import { engines } from "./engines";
+import { parseJson } from "./providers";
+import { AiError } from "./router";
+import { TOOL_MAP } from "./tools";
 
 /* -------------------------------------------------------------------------- */
 /* shapes                                                                     */
@@ -43,18 +46,11 @@ export interface AgentBriefing {
   steps: Array<{ tool: string; args: Record<string, unknown> }>;
   notes: string[];
   model: string;
+  /** Which provider produced this, so a slow answer can be explained. */
+  engine: string;
+  /** True when served from the shift cache rather than freshly gathered. */
+  cached: boolean;
   createdAt: string;
-}
-
-interface ChatMessage {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string | null;
-  tool_calls?: Array<{
-    id: string;
-    type: "function";
-    function: { name: string; arguments: string };
-  }>;
-  tool_call_id?: string;
 }
 
 const SYSTEM = `You are the operations assistant for a pharmacy on the DawaQuick network. You are talking to the pharmacy team, not to a patient.
@@ -64,6 +60,8 @@ How you work:
 - Call several tools before answering. A useful briefing looks at the order queue, the shelf, the verification queue and what is due soon.
 - Prioritise by what costs the pharmacy or the customer most if ignored: a customer waiting, an order that cannot be filled, a repeat that will fail.
 - Be specific. "3 orders waiting over 10 minutes, oldest DQ-4TR7QK at 14 minutes" beats "some orders are waiting".
+- Roll repetitive findings into one line. Nine medicines low on the shelf is a single "9 lines running low, worst: X (3 left), Y (3 left)" — not nine separate lines. A briefing someone has to scroll is not a briefing.
+- Eight lines is the most anyone reads. If you have more, merge the small ones.
 - Copy figures exactly as the tool wrote them. Money already carries its symbol and waiting times are already in hours and minutes — reformat nothing, convert nothing.
 - Say nothing when there is nothing to say. An empty list is a good morning, not a failure.
 
@@ -95,109 +93,6 @@ const MAX_STEPS = 4;
  */
 const MAX_TOOL_CHARS = 1400;
 
-/** One turn against Groq's chat API, with tools attached. */
-async function chat(messages: ChatMessage[], model: string) {
-  return withKey("groq", async (key) => {
-    const res = await fetchWithTimeout(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          max_tokens: 1200,
-          // Deciding which tool to call needs no deep reasoning either.
-          reasoning_effort: "low",
-          messages,
-          tools: toolSchemas(),
-          tool_choice: "auto",
-        }),
-      },
-      40_000,
-    );
-
-    const body = await res.text();
-    if (!res.ok) throw classify(res.status, body);
-
-    try {
-      const json = JSON.parse(body) as {
-        choices?: Array<{ finish_reason?: string; message?: ChatMessage }>;
-      };
-      const choice = json.choices?.[0];
-      if (!choice?.message) throw new AiError("Groq returned no message", res.status, true);
-      return { message: choice.message, finish: choice.finish_reason ?? "" };
-    } catch (err) {
-      if (err instanceof AiError) throw err;
-      throw new AiError("Groq returned an unparseable envelope", res.status, true);
-    }
-  });
-}
-
-/**
- * The writing turn: no tools, JSON enforced.
- *
- * Groq will not honour response_format while tools are attached, so gathering
- * and writing are deliberately separate calls. The first version let the model
- * decide when to stop and write, and it answered in prose that failed to parse
- * — the loop had done its work and the report was thrown away.
- */
-/**
- * The writing turn: a clean conversation, no tools, JSON enforced.
- *
- * Deliberately NOT a replay of the tool exchange. Groq will not honour
- * response_format while tools are attached, and sending a history full of
- * tool_calls without the matching schemas made it generate nothing at all.
- * Handing it the gathered evidence as plain text is smaller, cheaper and
- * reliable.
- */
-async function compose(
-  question: string,
-  evidence: string,
-  model: string,
-): Promise<string> {
-  return withKey("groq", async (key) => {
-    const res = await fetchWithTimeout(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          max_tokens: 2000,
-          /**
-           * gpt-oss reasons before it answers, out of the same completion
-           * budget. Left at its default it spent the whole allowance thinking
-           * and returned an empty string, which Groq rejects as invalid JSON —
-           * an error that points at the prompt when the cause is the budget.
-           * Low effort is right for a write-up from facts already gathered.
-           */
-          reasoning_effort: "low",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: SYSTEM },
-            {
-              role: "user",
-              content: `${question}
-
-Here is exactly what the tools returned. Use nothing else.
-${evidence.slice(0, 6000)}
-
-Write the briefing now. JSON only, in the shape given in your instructions.`,
-            },
-          ],
-        }),
-      },
-      40_000,
-    );
-    const body = await res.text();
-    if (!res.ok) throw classify(res.status, body);
-    const json = JSON.parse(body) as { choices?: Array<{ message?: { content?: string } }> };
-    return json.choices?.[0]?.message?.content ?? "";
-  });
-}
-
 /**
  * Runs the agent for one pharmacy session.
  *
@@ -222,32 +117,76 @@ function human(err: unknown): string {
   }
   return "The assistant could not finish this look-up. Try again in a moment.";
 }
+/**
+ * One briefing per pharmacy, held briefly.
+ *
+ * A shift briefing is a property of the shift, not of the page load. Without
+ * this, every staff member opening a desk spent a full agent run — and since
+ * one run costs about half the account's per-minute token budget, two people
+ * arriving together locked everyone out. The cache makes the common case free
+ * and keeps the quota for people who actually ask something.
+ *
+ * Typed questions are never served from here; only the default briefing is.
+ */
+const CACHE_MS = 5 * 60_000;
 
-export async function runOperationsAgent(
+interface CachedBriefing {
+  id: string;
+  pharmacyId: string;
+  at: number;
+  briefing: AgentBriefing;
+}
+
+/**
+ * The cache lives in the database, not in a module variable.
+ *
+ * A module-level Map is per-instance, and the thing being protected — the
+ * token allowance — is per-account. On serverless that is the worst possible
+ * pairing: every cold instance thinks the cache is empty and spends the
+ * budget the other instances were relying on. One shared row fixes it.
+ */
+async function readCache(pharmacyId: string): Promise<CachedBriefing | null> {
+  try {
+    const store = await getStore();
+    return await store.one<CachedBriefing>("briefings", { pharmacyId });
+  } catch {
+    return null;
+  }
+}
+
+async function writeCache(pharmacyId: string, briefing: AgentBriefing): Promise<void> {
+  try {
+    const store = await getStore();
+    const row = { id: `bf_${pharmacyId}`, pharmacyId, at: Date.now(), briefing };
+    const existing = await store.one<CachedBriefing>("briefings", { pharmacyId });
+    if (existing) await store.update<CachedBriefing>("briefings", existing.id, row);
+    else await store.insert<CachedBriefing>("briefings", row);
+  } catch {
+    // A briefing we could not cache is still a briefing worth showing.
+  }
+}
+
+/** Run the gather-and-write loop on one engine. */
+async function runWith(
+  engine: Engine,
   session: Session,
-  question?: string,
+  ask: string,
+  createdAt: string,
 ): Promise<AgentBriefing> {
-  const createdAt = new Date().toISOString();
   const steps: AgentBriefing["steps"] = [];
   const notes: string[] = [];
-  const model = MODELS.groqText;
 
-  const empty = (reason: string): AgentBriefing => ({
+  const fail = (reason: string): AgentBriefing => ({
     ok: false,
     headline: "",
     items: [],
     steps,
     notes: [reason],
-    model,
+    model: engine.model,
+    engine: engine.name,
+    cached: false,
     createdAt,
   });
-
-  if (!hasProvider("groq")) return empty("No agent provider is configured.");
-  if (!session.pharmacyId) return empty("This account is not linked to a pharmacy.");
-
-  const ask =
-    question?.trim() ||
-    "Give me the shift briefing. What needs my attention right now, and what is coming?";
 
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM },
@@ -257,31 +196,25 @@ export async function runOperationsAgent(
   /** Everything a tool has told us, so claims can be checked against it. */
   let evidence = "";
 
+  const write = async () => {
+    const prompt = `${ask}
+
+Here is exactly what the tools returned. Use nothing else.
+${evidence.slice(0, 6000)}
+
+Write the briefing now. JSON only, in the shape given in your instructions.`;
+    const text = await engine.compose(SYSTEM, prompt);
+    return finalise(text, evidence, steps, notes, engine, createdAt);
+  };
+
   for (let step = 0; step < MAX_STEPS; step++) {
     let turn;
     try {
-      turn = await chat(messages, model);
+      turn = await engine.chat(messages);
     } catch (err) {
-      /**
-       * A tokens-per-minute limit belongs to the account, not the key, so
-       * rotating to another key hits the same wall. Waiting is the only thing
-       * that helps, and one short wait is usually enough.
-       */
-      const rateLimited = err instanceof AiError && err.status === 429;
-      if (rateLimited && step === 0) {
-        await new Promise((r) => setTimeout(r, 4000));
-        try {
-          turn = await chat(messages, model);
-        } catch {
-          return empty(
-            "The AI account is out of tokens for this minute. Try again shortly.",
-          );
-        }
-      } else if (rateLimited) {
-        return empty("The AI account is out of tokens for this minute. Try again shortly.");
-      } else {
-        return empty(human(err));
-      }
+      // Let the caller decide whether another engine is worth trying.
+      if (err instanceof AiError && (err.status === 429 || (err.status ?? 0) >= 500)) throw err;
+      return fail(human(err));
     }
 
     const calls = turn.message.tool_calls ?? [];
@@ -289,10 +222,9 @@ export async function runOperationsAgent(
     if (calls.length === 0) {
       // It has looked at enough. Ask for the write-up in a shape we can use.
       try {
-        const text = await compose(ask, evidence, model);
-        return finalise(text, evidence, steps, notes, model, createdAt);
+        return await write();
       } catch (err) {
-        return empty(human(err));
+        return fail(human(err));
       }
     }
 
@@ -326,7 +258,8 @@ export async function runOperationsAgent(
       }
 
       const serialised = JSON.stringify(result);
-      evidence += `\n${call.function.name}: ${serialised}`;
+      evidence += `
+${call.function.name}: ${serialised}`;
       messages.push({
         role: "tool",
         tool_call_id: call.id,
@@ -338,16 +271,82 @@ export async function runOperationsAgent(
   // Out of look-ups, but the evidence gathered is still worth reporting.
   notes.push("The agent reached its look-up limit and wrote up what it had.");
   try {
-    const text = await compose(ask, evidence, model);
-    return finalise(text, evidence, steps, notes, model, createdAt);
+    return await write();
   } catch (err) {
-    return empty(human(err));
+    return fail(human(err));
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* grounding                                                                  */
-/* -------------------------------------------------------------------------- */
+export async function runOperationsAgent(
+  session: Session,
+  question?: string,
+  opts: { force?: boolean } = {},
+): Promise<AgentBriefing> {
+  const createdAt = new Date().toISOString();
+  const available = engines();
+
+  const empty = (reason: string): AgentBriefing => ({
+    ok: false,
+    headline: "",
+    items: [],
+    steps: [],
+    notes: [reason],
+    model: available[0]?.model ?? "",
+    engine: available[0]?.name ?? "none",
+    cached: false,
+    createdAt,
+  });
+
+  if (!available.length) return empty("No agent provider is configured.");
+  if (!session.pharmacyId) return empty("This account is not linked to a pharmacy.");
+
+  const asked = question?.trim();
+  const key = session.pharmacyId;
+
+  if (!asked && !opts.force) {
+    const hit = await readCache(key);
+    if (hit && Date.now() - hit.at < CACHE_MS) {
+      return { ...hit.briefing, cached: true };
+    }
+  }
+
+  const ask =
+    asked || "Give me the shift briefing. What needs my attention right now, and what is coming?";
+
+  /**
+   * Try each engine in turn. A 429 or a dead upstream is worth carrying to the
+   * next provider, because their quotas are entirely separate — which is the
+   * whole reason there is more than one.
+   */
+  let lastError: unknown = null;
+  for (const engine of available) {
+    try {
+      const briefing = await runWith(engine, session, ask, createdAt);
+      if (briefing.ok && !asked) await writeCache(key, briefing);
+      return briefing;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  /**
+   * Everything is rate-limited. A stale briefing beats a red error box: it is
+   * clearly labelled with its age, and the queue it describes moves in minutes,
+   * not seconds.
+   */
+  const stale = await readCache(key);
+  if (stale) {
+    return {
+      ...stale.briefing,
+      cached: true,
+      notes: [
+        ...stale.briefing.notes,
+        "Every AI provider is busy, so this is the last briefing rather than a new one.",
+      ],
+    };
+  }
+  return empty(human(lastError));
+}
 
 const PRIORITIES = [1, 2, 3];
 
@@ -365,14 +364,14 @@ function finalise(
   evidence: string,
   steps: AgentBriefing["steps"],
   notes: string[],
-  model: string,
+  engine: Engine,
   createdAt: string,
 ): AgentBriefing {
   let parsed: { headline?: unknown; items?: unknown };
   try {
     parsed = parseJson<{ headline?: unknown; items?: unknown }>({
-      provider: "groq",
-      model,
+      provider: engine.name,
+      model: engine.model,
       raw: text,
     });
   } catch {
@@ -382,7 +381,9 @@ function finalise(
       items: [],
       steps,
       notes: [...notes, "The agent's answer was not usable."],
-      model,
+      model: engine.model,
+      engine: engine.name,
+      cached: false,
       createdAt,
     };
   }
@@ -424,13 +425,27 @@ function finalise(
 
   items.sort((a, b) => a.priority - b.priority);
 
+  /**
+   * A cap the prompt asks for and this enforces. Left to itself the model will
+   * happily emit one line per low-stock medicine, which buries the two orders
+   * that have been waiting a day under nine lines about shampoo.
+   */
+  const MAX_ITEMS = 8;
+  if (items.length > MAX_ITEMS) {
+    const hidden = items.length - MAX_ITEMS;
+    items.length = MAX_ITEMS;
+    notes.push(`${hidden} lower-priority item(s) not shown.`);
+  }
+
   return {
     ok: true,
     headline: typeof parsed.headline === "string" ? parsed.headline.trim() : "",
     items,
     steps,
     notes,
-    model,
+    model: engine.model,
+    engine: engine.name,
+    cached: false,
     createdAt,
   };
 }

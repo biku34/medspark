@@ -24,7 +24,10 @@ export async function POST(req: Request) {
     return bad("This account is not linked to a pharmacy.", 409);
   }
 
-  const body = await readJson<{ question?: string }>(req);
-  const briefing = await runOperationsAgent(g.session, body?.question);
+  const body = await readJson<{ question?: string; force?: boolean }>(req);
+  // Opening a desk should be free; only an explicit Refresh may spend tokens.
+  const briefing = await runOperationsAgent(g.session, body?.question, {
+    force: body?.force === true,
+  });
   return ok({ briefing });
 }

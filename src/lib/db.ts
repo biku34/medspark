@@ -28,7 +28,8 @@ export type CollectionName =
   | "settings"
   | "carePlans"
   | "subscriptions"
-  | "reviews";
+  | "reviews"
+  | "briefings";
 
 export const COLLECTIONS: CollectionName[] = [
   "users",
@@ -46,6 +47,7 @@ export const COLLECTIONS: CollectionName[] = [
   "carePlans",
   "subscriptions",
   "reviews",
+  "briefings",
 ];
 
 export type Filter = Record<string, unknown>;
@@ -250,6 +252,8 @@ const mongoStore: Store = {
     // The repeat runner asks "what is due today" on every pass.
     await db.collection("subscriptions").createIndex({ status: 1, nextDate: 1 });
     await db.collection("subscriptions").createIndex({ customerId: 1, createdAt: -1 });
+    // One briefing per pharmacy, looked up by that pharmacy on every desk load.
+    await db.collection("briefings").createIndex({ pharmacyId: 1 }, { unique: true });
   },
 };
 
