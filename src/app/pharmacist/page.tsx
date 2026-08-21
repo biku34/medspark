@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, FileText, Hospital, Phone, Stethoscope } from "lucide-react";
 import { QueueTabs, StaffShell } from "@/components/staff-shell";
 import { Metric, MetricRow, Pill, Ticket, WaitTimer } from "@/components/ops";
+import { AiBriefing } from "@/components/ai-briefing";
 import { ComplianceNote } from "@/components/brand";
 import { EmptyState, Skeleton } from "@/components/ui";
 import { api } from "@/lib/client";
@@ -95,6 +96,8 @@ export default function PharmacistDashboard() {
           Every prescription order in the network passes through here
         </p>
       </div>
+
+      <AiBriefing role="pharmacist" />
 
       <MetricRow>
         <Metric

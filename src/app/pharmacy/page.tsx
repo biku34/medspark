@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { QueueTabs, StaffShell } from "@/components/staff-shell";
 import { ActionButton, DataTable, Metric, MetricRow, PanelTitle, Pill, Ticket, WaitTimer } from "@/components/ops";
+import { AiBriefing } from "@/components/ai-briefing";
 import { useApp } from "@/components/providers";
 import {
   Button,
@@ -152,6 +153,8 @@ export default function PharmacyDashboard() {
         </h1>
         <p className="text-[12px] text-ink-500">Live order queue, stock and earnings</p>
       </div>
+
+      <AiBriefing role="pharmacy" />
 
       <MetricRow>
         <Metric label="New orders" value={newOrders.length} tone="amber" live={newOrders.length > 0} />
