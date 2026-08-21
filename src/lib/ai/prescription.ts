@@ -155,7 +155,7 @@ export async function readPrescription(image: {
         image,
         maxTokens: 8192,
       },
-      MODELS.vision,
+      // No model pinned: let the vision ladder pick one with quota left.
     );
     models.push(`${readResult.provider}:${readResult.model}`);
     read = parseJson<RawRead>(readResult);
@@ -232,7 +232,6 @@ Return one entry per line you can match confidently, using its label (L1, L2, ..
   try {
     const r = await geminiJson(
       { system: MATCH_SYSTEM, prompt: matchPrompt, maxTokens: 4096 },
-      MODELS.geminiText,
     );
     models.push(`${r.provider}:${r.model}`);
     matchesByModel.push({

@@ -164,7 +164,7 @@ Read the attached document and draft the plan. Quote the document in "reads" for
         image: { mimeType: page.mimeType, base64: page.base64 },
         maxTokens: 8192,
       },
-      MODELS.vision,
+      // No model pinned: let the vision ladder pick one with quota left.
     );
     models.push(`${result.provider}:${result.model}`);
     parsed = parseJson<Record<string, unknown>>(result);

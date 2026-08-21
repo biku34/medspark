@@ -13,6 +13,7 @@
  * cheaper than translating two.
  */
 
+import { geminiRequest } from "./gemini";
 import { MODELS } from "./providers";
 import { AiError, classify, fetchWithTimeout, hasProvider, withKey } from "./router";
 import { toolSchemas } from "./tools";
@@ -24,6 +25,12 @@ export interface ChatMessage {
     id: string;
     type: "function";
     function: { name: string; arguments: string };
+    /**
+     * Gemini stamps each function call with a signature and refuses the next
+     * turn if it is not handed back verbatim. It is meaningless to Groq, which
+     * simply ignores the extra field, so it rides along on the shared shape.
+     */
+    thoughtSignature?: string;
   }>;
   tool_call_id?: string;
 }
@@ -128,6 +135,7 @@ const groqEngine: Engine = {
 
 interface GeminiPart {
   text?: string;
+  thoughtSignature?: string;
   functionCall?: { name: string; args?: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
 }
@@ -161,7 +169,10 @@ function toGemini(messages: ChatMessage[]) {
         } catch {
           args = {};
         }
-        parts.push({ functionCall: { name: call.function.name, args } });
+        parts.push({
+          functionCall: { name: call.function.name, args },
+          ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
+        });
       }
       if (parts.length) contents.push({ role: "model", parts });
       continue;
@@ -199,46 +210,35 @@ const geminiTools = () => [
   },
 ];
 
-async function geminiCall(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  return withKey("gemini", async (key) => {
-    const res = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.geminiText}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-      40_000,
-    );
-    const body = await res.text();
-    if (!res.ok) throw classify(res.status, body);
-    try {
-      return JSON.parse(body) as Record<string, unknown>;
-    } catch {
-      throw new AiError("Gemini returned an unparseable envelope", 502, true);
-    }
-  });
+let lastGeminiModel: string = MODELS.geminiText;
+
+async function geminiCall(
+  body: Record<string, unknown>,
+  generationConfig: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const { json, model } = await geminiRequest({ body, generationConfig });
+  lastGeminiModel = model;
+  return json;
 }
 
 let callSeq = 0;
 
 const geminiEngine: Engine = {
   name: "gemini",
-  model: MODELS.geminiText,
+  get model() {
+    return lastGeminiModel;
+  },
 
   async chat(messages) {
     const { system, contents } = toGemini(messages);
-    const json = (await geminiCall({
-      contents,
-      ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
-      tools: geminiTools(),
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 1200,
-        // Thinking is billed from the same budget and buys nothing here.
-        thinkingConfig: { thinkingBudget: 0 },
+    const json = (await geminiCall(
+      {
+        contents,
+        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+        tools: geminiTools(),
       },
-    })) as {
+      { temperature: 0, maxOutputTokens: 2000 },
+    )) as {
       candidates?: Array<{ finishReason?: string; content?: { parts?: GeminiPart[] } }>;
       usageMetadata?: unknown;
     };
@@ -260,6 +260,7 @@ const geminiEngine: Engine = {
                 name: p.functionCall!.name,
                 arguments: JSON.stringify(p.functionCall!.args ?? {}),
               },
+              ...(p.thoughtSignature ? { thoughtSignature: p.thoughtSignature } : {}),
             })),
           }
         : {}),
@@ -272,16 +273,13 @@ const geminiEngine: Engine = {
   },
 
   async compose(system, prompt) {
-    const json = (await geminiCall({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      systemInstruction: { parts: [{ text: system }] },
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 2000,
-        thinkingConfig: { thinkingBudget: 0 },
-        responseMimeType: "application/json",
+    const json = (await geminiCall(
+      {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: system }] },
       },
-    })) as { candidates?: Array<{ content?: { parts?: GeminiPart[] } }> };
+      { temperature: 0, maxOutputTokens: 3000, responseMimeType: "application/json" },
+    )) as { candidates?: Array<{ content?: { parts?: GeminiPart[] } }> };
     return json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
   },
 };

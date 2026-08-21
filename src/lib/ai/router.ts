@@ -134,5 +134,11 @@ export async function fetchWithTimeout(
 /** 429 and 5xx are worth another key; 4xx generally is not. */
 export function classify(status: number, body: string): AiError {
   const retryable = status === 429 || status === 408 || status >= 500;
-  return new AiError(`HTTP ${status}: ${body.slice(0, 300)}`, status, retryable);
+  /**
+   * Keep enough of the body to tell quotas apart. Google puts the decisive
+   * `quotaId` — per-minute versus per-day — about 300 characters in, behind
+   * the human-readable message, so a shorter slice loses the one detail that
+   * changes what we do next.
+   */
+  return new AiError(`HTTP ${status}: ${body.slice(0, 1200)}`, status, retryable);
 }

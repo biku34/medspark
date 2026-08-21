@@ -57,7 +57,7 @@ const SYSTEM = `You are the operations assistant for a pharmacy on the DawaQuick
 
 How you work:
 - Find things out by calling tools. Never state a number, a code or a name you did not get from a tool result.
-- Call several tools before answering. A useful briefing looks at the order queue, the shelf, the verification queue and what is due soon.
+- Ask for every tool you need in ONE go. You can request several at once, and you should: a useful briefing looks at the order queue, the shelf, the verification queue and what is due soon, so ask for all of them together on your first turn rather than one at a time.
 - Prioritise by what costs the pharmacy or the customer most if ignored: a customer waiting, an order that cannot be filled, a repeat that will fail.
 - Be specific. "3 orders waiting over 10 minutes, oldest DQ-4TR7QK at 14 minutes" beats "some orders are waiting".
 - Roll repetitive findings into one line. Nine medicines low on the shelf is a single "9 lines running low, worst: X (3 left), Y (3 left)" — not nine separate lines. A briefing someone has to scroll is not a briefing.
@@ -82,7 +82,22 @@ Priority 1 = needs doing now, 2 = today, 3 = worth knowing.`;
  * whole conversation — on a free tier metered by tokens per minute, the loop
  * length is the cost.
  */
-const MAX_STEPS = 4;
+/**
+ * One round of looking, then the write-up. Two requests, and that is the
+ * whole budget.
+ *
+ * The free tier's binding limit is requests per day, not tokens, and every
+ * turn is a request. The first version asked for one tool per turn and spent
+ * six; batching the calls brought it to three, and the third was pure
+ * ceremony — a turn whose only content was the model saying it had finished.
+ *
+ * So the model gets one turn to decide what to look at, and it can ask for
+ * every tool at once. It still chooses; it just does not get to change its
+ * mind, which at seven tools in a single round it has never needed to. A
+ * pharmacist who wants a second angle asks a follow-up question, and that is
+ * a request worth spending.
+ */
+const MAX_STEPS = 1;
 
 /**
  * Tool results are trimmed hard before going back to the model.
@@ -128,7 +143,7 @@ function human(err: unknown): string {
  *
  * Typed questions are never served from here; only the default briefing is.
  */
-const CACHE_MS = 5 * 60_000;
+const CACHE_MS = 15 * 60_000;
 
 interface CachedBriefing {
   id: string;
@@ -268,8 +283,7 @@ ${call.function.name}: ${serialised}`;
     }
   }
 
-  // Out of look-ups, but the evidence gathered is still worth reporting.
-  notes.push("The agent reached its look-up limit and wrote up what it had.");
+  // The tools it asked for have run; write up what they returned.
   try {
     return await write();
   } catch (err) {

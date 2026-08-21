@@ -8,6 +8,7 @@
  * independent rather than a second look at the same pixels.
  */
 
+import { TEXT_LADDER, VISION_LADDER, geminiRequest } from "./gemini";
 import { AiError, classify, fetchWithTimeout, withKey } from "./router";
 
 export const MODELS = {
@@ -43,79 +44,71 @@ export interface AiResult {
 /* Gemini                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export async function geminiJson(call: AiCall, model = MODELS.geminiText): Promise<AiResult> {
-  return withKey("gemini", async (key) => {
-    const parts: Array<Record<string, unknown>> = [{ text: call.prompt }];
-    if (call.image) {
-      parts.unshift({
-        inline_data: { mime_type: call.image.mimeType, data: call.image.base64 },
-      });
-    }
+export async function geminiJson(call: AiCall, model?: string): Promise<AiResult> {
+  const parts: Array<Record<string, unknown>> = [{ text: call.prompt }];
+  if (call.image) {
+    parts.unshift({
+      inline_data: { mime_type: call.image.mimeType, data: call.image.base64 },
+    });
+  }
 
-    const res = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: call.system }] },
-          contents: [{ role: "user", parts }],
-          generationConfig: {
-            // Deterministic: this is extraction, not writing.
-            temperature: 0,
-            responseMimeType: "application/json",
-            maxOutputTokens: call.maxTokens ?? 8192,
-            /**
-             * Gemini 2.5 spends output tokens on internal reasoning, and they
-             * come out of the same budget as the answer. A real prescription
-             * blew the old 2048 cap on thinking alone and the JSON came back
-             * truncated mid-string. These tasks are transcription and lookup,
-             * not reasoning, so the budget is better spent on the answer.
-             */
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    );
+  /**
+   * Documents go up the accuracy-first ladder, prose up the quota-first one.
+   * An explicit `model` still wins, so callers that must pin one can.
+   */
+  const ladder = model
+    ? [{ id: model, thinking: !model.includes("-latest") }]
+    : call.image
+      ? VISION_LADDER
+      : TEXT_LADDER;
 
-    const body = await res.text();
-    if (!res.ok) throw classify(res.status, body);
-
-    let text = "";
-    let finishReason = "";
-    try {
-      const json = JSON.parse(body) as {
-        candidates?: Array<{
-          finishReason?: string;
-          content?: { parts?: Array<{ text?: string }> };
-        }>;
-      };
-      const candidate = json.candidates?.[0];
-      finishReason = candidate?.finishReason ?? "";
-      text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    } catch {
-      throw new AiError("Gemini returned unparseable envelope", res.status, true);
-    }
-
-    /**
-     * A truncated answer is not "bad JSON" — it is a budget problem, and
-     * saying so is the difference between a useful error and a confusing one.
-     * Retryable, because a second attempt may transcribe more tersely.
-     */
-    if (finishReason === "MAX_TOKENS") {
-      throw new AiError(
-        "The page was too dense to transcribe in one answer — try a tighter crop, or one page at a time.",
-        res.status,
-        true,
-      );
-    }
-    if (finishReason === "SAFETY" || finishReason === "PROHIBITED_CONTENT") {
-      throw new AiError("The provider declined to process this image.", res.status, false);
-    }
-    if (!text.trim()) throw new AiError("Gemini returned nothing", res.status, true);
-
-    return { provider: "gemini", model, raw: text };
+  const { json, model: used } = await geminiRequest({
+    ladder,
+    body: {
+      systemInstruction: { parts: [{ text: call.system }] },
+      contents: [{ role: "user", parts }],
+    },
+    generationConfig: {
+      // Deterministic: this is extraction, not writing.
+      temperature: 0,
+      responseMimeType: "application/json",
+      /**
+       * Gemini spends output tokens on internal reasoning, out of the same
+       * budget as the answer. A real prescription blew the old 2048 cap on
+       * thinking alone and the JSON came back truncated mid-string. Models
+       * that accept it get thinking switched off; the rest get room instead.
+       */
+      maxOutputTokens: call.maxTokens ?? 8192,
+    },
   });
+
+  const typed = json as {
+    candidates?: Array<{
+      finishReason?: string;
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+  const candidate = typed.candidates?.[0];
+  const finishReason = candidate?.finishReason ?? "";
+  const text = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+
+  /**
+   * A truncated answer is not "bad JSON" — it is a budget problem, and saying
+   * so is the difference between a useful error and a confusing one.
+   */
+  if (finishReason === "MAX_TOKENS") {
+    throw new AiError(
+      "The page was too dense to transcribe in one answer — try a tighter crop, or one page at a time.",
+      429,
+      true,
+    );
+  }
+  if (finishReason === "SAFETY" || finishReason === "PROHIBITED_CONTENT") {
+    throw new AiError("The provider declined to process this image.", 400, false);
+  }
+  if (!text.trim()) throw new AiError("Gemini returned nothing", 502, true);
+
+  return { provider: "gemini", model: used, raw: text };
 }
 
 /* -------------------------------------------------------------------------- */
